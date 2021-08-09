@@ -1,0 +1,15 @@
+[package]
+name = "bili"
+version = "0.0.1"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gettext = "0.4.0"
+json = "0.12.4"
+reqwest = { version = "0.11", features = ["cookies"] }
+thirtyfour = "0.27.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winnls", "stringapiset"] }
