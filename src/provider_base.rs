@@ -5,7 +5,7 @@ pub trait Provider {
     fn can_login(&self) -> bool {
         false
     }
-    fn check_logined(&self) -> Option<bool> {
+    fn check_logined(&mut self) -> Option<bool> {
         Some(false)
     }
     fn get_default_cookie_jar_name(&self) -> Option<&str> {
@@ -15,6 +15,12 @@ pub trait Provider {
         false
     }
     fn login(&self, _jar: &mut CookiesJar) -> bool {
+        false
+    }
+    fn logined(&self) -> bool {
+        false
+    }
+    fn login_required(&self) -> bool {
         false
     }
     fn match_url(_url: &str) -> bool {

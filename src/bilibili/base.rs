@@ -7,11 +7,13 @@ use crate::http_client::CookieClient;
 use crate::i18n::gettext;
 use crate::provider_base::Provider;
 use futures::executor::block_on;
+use json::JsonValue;
 use reqwest::header::HeaderMap;
 use reqwest::Client;
 
 pub struct BiliBaseProvider {
     client: Option<CookieClient>,
+    user_info: Option<JsonValue>,
 }
 
 impl BiliBaseProvider {
@@ -45,14 +47,17 @@ impl BiliBaseProvider {
 
 impl Provider for BiliBaseProvider {
     fn new() -> BiliBaseProvider {
-        BiliBaseProvider { client: None }
+        BiliBaseProvider {
+            client: None,
+            user_info: None,
+        }
     }
 
     fn can_login(&self) -> bool {
         return true;
     }
 
-    fn check_logined(&self) -> Option<bool> {
+    fn check_logined(&mut self) -> Option<bool> {
         match self.client {
             Some(_) => {}
             None => {
@@ -81,7 +86,6 @@ impl Provider for BiliBaseProvider {
             }
         }
         let text = text.unwrap();
-        println!("{}", text);
         let re = json::parse(text.as_str());
         match re {
             Ok(_) => {}
@@ -90,7 +94,28 @@ impl Provider for BiliBaseProvider {
             }
         }
         let obj = re.unwrap();
-        return Some(false);
+        let code = obj["code"].as_i64();
+        match code {
+            Some(_) => {}
+            None => {
+                println!(
+                    "{}",
+                    gettext("Error: code return from API is not an integer.")
+                );
+                return None;
+            }
+        }
+        let code = code.unwrap();
+        if code == 0 {
+            let result = &obj["data"];
+            let s = result.dump();
+            self.user_info = Some(json::parse(s.as_str()).unwrap());
+            return Some(true);
+        } else if code == -101 {
+            return Some(false);
+        }
+        println!("{}{}", gettext("Unknown codition: "), text);
+        return None;
     }
 
     fn get_default_cookie_jar_name(&self) -> Option<&str> {
@@ -99,6 +124,26 @@ impl Provider for BiliBaseProvider {
 
     fn login(&self, _jar: &mut CookiesJar) -> bool {
         return false;
+    }
+
+    fn logined(&self) -> bool {
+        match &self.user_info {
+            Some(ui) => {
+                let o = &ui["isLogin"];
+                let t = o.as_bool();
+                match t {
+                    Some(t) => t,
+                    None => {
+                        println!(
+                            "{}",
+                            "BiliBaseProvider: can not get is_login from user_info."
+                        );
+                        false
+                    }
+                }
+            }
+            None => false,
+        }
     }
 
     fn init(&mut self, jar: Option<&CookiesJar>) -> bool {

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: bili\n"
-"POT-Creation-Date: 2021-08-10 17:35+0800\n"
+"POT-Creation-Date: 2021-08-10 20:31+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,8 +14,12 @@ msgstr ""
 "X-Poedit-Basepath: ../src\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: bilibili/base.rs:70 bilibili\base.rs:70
-msgid "Error when request: "
+#: bilibili/base.rs:103 bilibili\base.rs:103
+msgid "Error: code return from API is not an integer."
+msgstr ""
+
+#: bilibili/base.rs:117 bilibili\base.rs:117
+msgid "Unknown codition: "
 msgstr ""
 
 #: cookies_json.rs:87
@@ -26,58 +30,86 @@ msgstr ""
 msgid "Can not insert path to cookie's json object."
 msgstr ""
 
-#: cookies_json.rs:146
+#: cookies_json.rs:150
 msgid "Can not append a cookie to cookies jar."
 msgstr ""
 
-#: cookies_json.rs:192
+#: cookies_json.rs:196
 msgid "Can not load custom cookies file: "
 msgstr ""
 
-#: cookies_json.rs:225
+#: cookies_json.rs:229
 msgid "Can not open cookies file: "
 msgstr ""
 
-#: cookies_json.rs:239
+#: cookies_json.rs:243
 msgid "Cookies file is empty: "
 msgstr ""
 
-#: cookies_json.rs:248
+#: cookies_json.rs:252
 msgid "Can not read from cookies file: "
 msgstr ""
 
-#: cookies_json.rs:260
+#: cookies_json.rs:264
 msgid "Can not parse cookies file: "
 msgstr ""
 
-#: cookies_json.rs:270 cookies_json.rs:290 cookies_json.rs:312
+#: cookies_json.rs:274 cookies_json.rs:294 cookies_json.rs:316
 msgid "Unknown cookies file: "
 msgstr ""
 
-#: cookies_json.rs:282
+#: cookies_json.rs:286
 msgid "Cookies file contains two same keys: "
 msgstr ""
 
-#: cookies_json.rs:299
+#: cookies_json.rs:303
 msgid "The provider name shoule not be empty in cookies file: "
 msgstr ""
 
-#: cookies_json.rs:320
+#: cookies_json.rs:324
 msgid "Cookie must have name and value: "
 msgstr ""
 
-#: cookies_json.rs:330 cookies_json.rs:341 cookies_json.rs:354
+#: cookies_json.rs:334 cookies_json.rs:345 cookies_json.rs:358
 msgid "Cookie's name or value is non-string: "
 msgstr ""
 
-#: cookies_json.rs:367 cookies_json.rs:378
+#: cookies_json.rs:371 cookies_json.rs:382
 msgid "Cookie's domain is non-string: "
 msgstr ""
 
-#: cookies_json.rs:392 cookies_json.rs:403
+#: cookies_json.rs:396 cookies_json.rs:407
 msgid "Cookie's path is non-string: "
 msgstr ""
 
-#: main.rs:28
+#: http_client.rs:38
+msgid "Error when request: "
+msgstr ""
+
+#: main.rs:30
 msgid "Can not find suitable provider."
+msgstr ""
+
+#: main.rs:40
+msgid "Can not initialize provider."
+msgstr ""
+
+#: main.rs:46
+msgid "Error occured when checking login."
+msgstr ""
+
+#: main.rs:56
+msgid "Name is needed for cookie jar."
+msgstr ""
+
+#: main.rs:63
+msgid "Login failed."
+msgstr ""
+
+#: main.rs:70
+msgid "Warn: fuction check_logined and logined return different result."
+msgstr ""
+
+#: main.rs:74
+msgid "Verify login successfully."
 msgstr ""

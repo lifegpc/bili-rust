@@ -6,6 +6,7 @@ mod path;
 mod provider_base;
 mod providers;
 
+use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
 use i18n::gettext;
 use provider_base::Provider;
@@ -41,6 +42,38 @@ impl Main {
         }
         if pro.can_login() {
             let p = pro.check_logined();
+            if p.is_none() {
+                println!("{}", gettext("Error occured when checking login."));
+                if pro.login_required() {
+                    return 1;
+                }
+            } else {
+                let mut p = p.unwrap();
+                if !p && pro.login_required() {
+                    let k = match pro.get_default_cookie_jar_name() {
+                        Some(s) => s,
+                        None => {
+                            println!("{}", gettext("Name is needed for cookie jar."));
+                            return 1;
+                        },
+                    };
+                    let mut jar = CookiesJar::new();
+                    p = pro.login(&mut jar);
+                    if !p {
+                        println!("{}", gettext("Login failed."));
+                        return 1;
+                    }
+                    self.cookies.add(k, jar);
+                }
+                let s = pro.logined();
+                if s != p {
+                    println!("{}", gettext("Warn: fuction check_logined and logined return different result."));
+                    p = s;
+                }
+                if p {
+                    println!("{}", gettext("Verify login successfully."));
+                }
+            }
         }
         return 0;
     }
