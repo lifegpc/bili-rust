@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: bili\n"
-"POT-Creation-Date: 2021-08-10 20:31+0800\n"
+"POT-Creation-Date: 2021-08-10 23:50+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,34 +82,50 @@ msgstr ""
 msgid "Cookie's path is non-string: "
 msgstr ""
 
+#: getopt.rs:132
+msgid "Print help message"
+msgstr ""
+
+#: getopt.rs:235 getopt.rs:281 getopt.rs:290
+msgid "<s> is not a vaild option."
+msgstr ""
+
+#: getopt.rs:259 getopt.rs:268
+msgid "<option> need an argument."
+msgstr ""
+
 #: http_client.rs:38
 msgid "Error when request: "
 msgstr ""
 
-#: main.rs:30
+#: main.rs:41
+msgid "Url is needed."
+msgstr ""
+
+#: main.rs:48
 msgid "Can not find suitable provider."
 msgstr ""
 
-#: main.rs:40
+#: main.rs:58
 msgid "Can not initialize provider."
 msgstr ""
 
-#: main.rs:46
+#: main.rs:64
 msgid "Error occured when checking login."
 msgstr ""
 
-#: main.rs:56
+#: main.rs:74
 msgid "Name is needed for cookie jar."
 msgstr ""
 
-#: main.rs:63
+#: main.rs:81
 msgid "Login failed."
 msgstr ""
 
-#: main.rs:70
+#: main.rs:90
 msgid "Warn: fuction check_logined and logined return different result."
 msgstr ""
 
-#: main.rs:74
+#: main.rs:95
 msgid "Verify login successfully."
 msgstr ""

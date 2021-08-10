@@ -1,5 +1,6 @@
 mod bilibili;
 mod cookies_json;
+mod getopt;
 mod http_client;
 mod i18n;
 mod path;
@@ -8,21 +9,38 @@ mod providers;
 
 use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
+use getopt::OptStore;
 use i18n::gettext;
 use provider_base::Provider;
 
 struct Main {
     cookies: CookiesJson,
+    opt: OptStore,
 }
 
 impl Main {
     fn new() -> Main {
         let mut cookies = CookiesJson::new();
         cookies.read(None);
-        Main { cookies: cookies }
+        Main {
+            cookies: cookies,
+            opt: OptStore::new(),
+        }
     }
 
     fn run(&mut self) -> i32 {
+        let url = self.opt.parse_url();
+        if url.is_none() {
+            if !self.opt.parse_options() {
+                return 1;
+            }
+            if self.opt.has_option("help") {
+                self.opt.print_help();
+                return 0;
+            }
+            println!("{}", gettext("Url is needed."));
+            return 1;
+        }
         let pro = providers::match_provider("");
         match pro {
             Some(_) => {}
@@ -55,7 +73,7 @@ impl Main {
                         None => {
                             println!("{}", gettext("Name is needed for cookie jar."));
                             return 1;
-                        },
+                        }
                     };
                     let mut jar = CookiesJar::new();
                     p = pro.login(&mut jar);
@@ -67,7 +85,10 @@ impl Main {
                 }
                 let s = pro.logined();
                 if s != p {
-                    println!("{}", gettext("Warn: fuction check_logined and logined return different result."));
+                    println!(
+                        "{}",
+                        gettext("Warn: fuction check_logined and logined return different result.")
+                    );
                     p = s;
                 }
                 if p {
