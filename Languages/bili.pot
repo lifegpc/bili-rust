@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: bili\n"
-"POT-Creation-Date: 2021-08-10 23:50+0800\n"
+"POT-Creation-Date: 2021-08-11 07:39+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -86,11 +86,11 @@ msgstr ""
 msgid "Print help message"
 msgstr ""
 
-#: getopt.rs:235 getopt.rs:281 getopt.rs:290
+#: getopt.rs:235 getopt.rs:281 getopt.rs:291
 msgid "<s> is not a vaild option."
 msgstr ""
 
-#: getopt.rs:259 getopt.rs:268
+#: getopt.rs:259 getopt.rs:268 getopt.rs:327 getopt.rs:335
 msgid "<option> need an argument."
 msgstr ""
 

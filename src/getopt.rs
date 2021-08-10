@@ -285,6 +285,7 @@ impl OptStore {
                 let mut i = 0;
                 while i < opts.len() {
                     let opt = &opts[i..i + 1];
+                    i += 1;
                     let optdes = self.des.get_by_short_name(opt);
                     if optdes.is_none() {
                         let s = gettext("<s> is not a vaild option.")
@@ -296,9 +297,48 @@ impl OptStore {
                     if !optdes.has_value() {
                         self.list.push(Opt::new(optdes.name(), None));
                     } else {
-                        // #TODO
+                        if !optdes.need_value() {
+                            if i < opts.len() {
+                                let v = &opts[i..opts.len()];
+                                i = opts.len();
+                                self.list.push(Opt::new(optdes.name(), Some(v)));
+                            } else if self.ind < self.args.len() {
+                                let v = &self.args[self.ind];
+                                self.ind += 1;
+                                if v.starts_with("-") {
+                                    self.ind -= 1;
+                                    self.list.push(Opt::new(optdes.name(), None));
+                                } else {
+                                    self.list.push(Opt::new(optdes.name(), Some(v)));
+                                }
+                            } else {
+                                self.list.push(Opt::new(optdes.name(), None));
+                            }
+                        } else {
+                            if i < opts.len() {
+                                let v = &opts[i..opts.len()];
+                                i = opts.len();
+                                self.list.push(Opt::new(optdes.name(), Some(v)));
+                            } else if self.ind < self.args.len() {
+                                let v = &self.args[self.ind];
+                                self.ind += 1;
+                                if v.starts_with("-") {
+                                    self.ind -= 1;
+                                    let s = gettext("<option> need an argument.")
+                                        .replace("<option>", format!("-{}", opt).as_str());
+                                    println!("{}", s);
+                                    return false;
+                                } else {
+                                    self.list.push(Opt::new(optdes.name(), Some(v)));
+                                }
+                            } else {
+                                let s = gettext("<option> need an argument.")
+                                    .replace("<option>", format!("-{}", opt).as_str());
+                                println!("{}", s);
+                                return false;
+                            }
+                        }
                     }
-                    i += 1;
                 }
             } else {
                 self.ind -= 1;
