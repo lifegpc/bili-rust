@@ -1,5 +1,6 @@
 mod bilibili;
 mod cookies_json;
+mod http_client;
 mod i18n;
 mod path;
 mod provider_base;
@@ -21,7 +22,7 @@ impl Main {
     }
 
     fn run(&mut self) -> i32 {
-        let pro = providers::match_provider("", &self.cookies);
+        let pro = providers::match_provider("");
         match pro {
             Some(_) => {}
             None => {
@@ -29,7 +30,15 @@ impl Main {
                 return 1;
             }
         }
-        let pro = pro.unwrap();
+        let mut pro = pro.unwrap();
+        let jar = match pro.get_default_cookie_jar_name() {
+            Some(s) => self.cookies.get(s),
+            None => None,
+        };
+        if !pro.init(jar) {
+            println!("{}", gettext("Can not initialize provider."));
+            return 1;
+        }
         if pro.can_login() {
             let p = pro.check_logined();
         }

@@ -1,17 +1,23 @@
 use crate::cookies_json::CookiesJar;
 
 pub trait Provider {
-    fn new(jar: Option<&CookiesJar>) -> Self;
+    fn new() -> Self;
     fn can_login(&self) -> bool {
-        return false;
+        false
     }
     fn check_logined(&self) -> Option<bool> {
-        return Some(false);
+        Some(false)
+    }
+    fn get_default_cookie_jar_name(&self) -> Option<&str> {
+        None
+    }
+    fn init(&mut self, _jar: Option<&CookiesJar>) -> bool {
+        false
     }
     fn login(&self, _jar: &mut CookiesJar) -> bool {
-        return false;
+        false
     }
     fn match_url(_url: &str) -> bool {
-        return false;
+        false
     }
 }

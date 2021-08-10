@@ -135,6 +135,10 @@ impl CookiesJar {
         self.cookies.insert(String::from(n), c);
     }
 
+    pub fn iter(&self) -> std::collections::hash_map::Iter<String, Cookie> {
+        self.cookies.iter()
+    }
+
     pub fn to_json(&self) -> Option<JsonValue> {
         let mut arr = JsonValue::new_array();
         for (_, val) in self.cookies.iter() {
@@ -416,5 +420,13 @@ impl CookiesJson {
             en = ent.next();
         }
         return true;
+    }
+}
+
+impl Clone for CookiesJson {
+    fn clone(&self) -> CookiesJson {
+        CookiesJson {
+            cookies: self.cookies.clone(),
+        }
     }
 }

@@ -3,6 +3,7 @@ extern crate json;
 extern crate reqwest;
 
 use crate::cookies_json::CookiesJar;
+use crate::http_client::CookieClient;
 use crate::i18n::gettext;
 use crate::provider_base::Provider;
 use futures::executor::block_on;
@@ -10,7 +11,7 @@ use reqwest::header::HeaderMap;
 use reqwest::Client;
 
 pub struct BiliBaseProvider {
-    client: Option<Client>,
+    client: Option<CookieClient>,
 }
 
 impl BiliBaseProvider {
@@ -37,16 +38,14 @@ impl BiliBaseProvider {
                 return false;
             }
         }
-        self.client = Some(r.unwrap());
+        self.client = Some(CookieClient::new(r.unwrap(), jar));
         return true;
     }
 }
 
 impl Provider for BiliBaseProvider {
-    fn new(jar: Option<&CookiesJar>) -> BiliBaseProvider {
-        let mut r = BiliBaseProvider { client: None };
-        r.init_client(jar);
-        r
+    fn new() -> BiliBaseProvider {
+        BiliBaseProvider { client: None }
     }
 
     fn can_login(&self) -> bool {
@@ -62,12 +61,9 @@ impl Provider for BiliBaseProvider {
         }
         let client = self.client.as_ref().unwrap();
         let r = client.get("https://api.bilibili.com/x/web-interface/nav");
-        let r = r.send();
-        let r = block_on(r);
         match r {
-            Ok(_) => {}
-            Err(e) => {
-                println!("{}{}", gettext("Error when request: "), e);
+            Some(_) => {}
+            None => {
                 return None;
             }
         }
@@ -97,8 +93,16 @@ impl Provider for BiliBaseProvider {
         return Some(false);
     }
 
+    fn get_default_cookie_jar_name(&self) -> Option<&str> {
+        Some("bili")
+    }
+
     fn login(&self, _jar: &mut CookiesJar) -> bool {
         return false;
+    }
+
+    fn init(&mut self, jar: Option<&CookiesJar>) -> bool {
+        self.init_client(jar)
     }
 
     fn match_url(_url: &str) -> bool {
