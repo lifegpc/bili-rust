@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: bili\n"
-"POT-Creation-Date: 2021-08-09 23:49+0800\n"
+"POT-Creation-Date: 2021-08-10 17:35+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,38 +14,70 @@ msgstr ""
 "X-Poedit-Basepath: ../src\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: cookies_json.rs:55
+#: bilibili/base.rs:70 bilibili\base.rs:70
+msgid "Error when request: "
+msgstr ""
+
+#: cookies_json.rs:87
+msgid "Can not insert domain to cookie's json object."
+msgstr ""
+
+#: cookies_json.rs:100
+msgid "Can not insert path to cookie's json object."
+msgstr ""
+
+#: cookies_json.rs:146
+msgid "Can not append a cookie to cookies jar."
+msgstr ""
+
+#: cookies_json.rs:192
 msgid "Can not load custom cookies file: "
 msgstr ""
 
-#: cookies_json.rs:88
+#: cookies_json.rs:225
 msgid "Can not open cookies file: "
 msgstr ""
 
-#: cookies_json.rs:102
+#: cookies_json.rs:239
 msgid "Cookies file is empty: "
 msgstr ""
 
-#: cookies_json.rs:111
+#: cookies_json.rs:248
 msgid "Can not read from cookies file: "
 msgstr ""
 
-#: cookies_json.rs:123
+#: cookies_json.rs:260
 msgid "Can not parse cookies file: "
 msgstr ""
 
-#: cookies_json.rs:133 cookies_json.rs:153
+#: cookies_json.rs:270 cookies_json.rs:290 cookies_json.rs:312
 msgid "Unknown cookies file: "
 msgstr ""
 
-#: cookies_json.rs:145
+#: cookies_json.rs:282
 msgid "Cookies file contains two same keys: "
 msgstr ""
 
-#: cookies_json.rs:161
+#: cookies_json.rs:299
+msgid "The provider name shoule not be empty in cookies file: "
+msgstr ""
+
+#: cookies_json.rs:320
 msgid "Cookie must have name and value: "
 msgstr ""
 
-#: cookies_json.rs:171 cookies_json.rs:181
-msgid "Cookie's Name or value is non-string : "
+#: cookies_json.rs:330 cookies_json.rs:341 cookies_json.rs:354
+msgid "Cookie's name or value is non-string: "
+msgstr ""
+
+#: cookies_json.rs:367 cookies_json.rs:378
+msgid "Cookie's domain is non-string: "
+msgstr ""
+
+#: cookies_json.rs:392 cookies_json.rs:403
+msgid "Cookie's path is non-string: "
+msgstr ""
+
+#: main.rs:28
+msgid "Can not find suitable provider."
 msgstr ""

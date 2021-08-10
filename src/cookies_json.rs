@@ -6,6 +6,7 @@ use crate::path::get_exe_path;
 use crate::path::path_to_str;
 use json::object;
 use json::JsonValue;
+use std::clone::Clone;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -14,6 +15,8 @@ use std::path::Path;
 pub struct Cookie {
     _name: String,
     _value: String,
+    _domain: Option<String>,
+    _path: Option<String>,
 }
 
 impl Cookie {
@@ -21,15 +24,98 @@ impl Cookie {
         Cookie {
             _name: String::from(name),
             _value: String::from(value),
+            _domain: None,
+            _path: None,
         }
     }
 
-    pub fn to_json(&self) -> JsonValue {
-        let obj = object! {
+    pub fn name(&self) -> &str {
+        self._name.as_str()
+    }
+
+    pub fn value(&self) -> &str {
+        self._value.as_str()
+    }
+
+    pub fn domain(&self) -> Option<&str> {
+        match &self._domain {
+            Some(dm) => Some(dm.as_str()),
+            None => None,
+        }
+    }
+
+    pub fn set_domain(&mut self, domain: Option<&str>) {
+        match domain {
+            Some(dm) => {
+                self._domain = Some(String::from(dm));
+            }
+            None => {
+                self._domain = None;
+            }
+        }
+    }
+
+    pub fn path(&self) -> Option<&str> {
+        match &self._path {
+            Some(ph) => Some(ph.as_str()),
+            None => None,
+        }
+    }
+
+    pub fn set_path(&mut self, path: Option<&str>) {
+        match path {
+            Some(p) => {
+                self._path = Some(String::from(p));
+            }
+            None => {
+                self._path = None;
+            }
+        }
+    }
+
+    pub fn to_json(&self) -> Option<JsonValue> {
+        let mut obj = object! {
             "name": self._name.as_str(),
             "value": self._value.as_str(),
         };
-        return obj;
+        match &self._domain {
+            Some(dm) => match obj.insert("domain", dm.as_str()) {
+                Ok(_) => {}
+                Err(_) => {
+                    println!(
+                        "{}",
+                        gettext("Can not insert domain to cookie's json object.")
+                    );
+                    return None;
+                }
+            },
+            None => {}
+        }
+        match &self._path {
+            Some(p) => match obj.insert("path", p.as_str()) {
+                Ok(_) => {}
+                Err(_) => {
+                    println!(
+                        "{}",
+                        gettext("Can not insert path to cookie's json object.")
+                    );
+                    return None;
+                }
+            },
+            None => {}
+        }
+        return Some(obj);
+    }
+}
+
+impl Clone for Cookie {
+    fn clone(&self) -> Cookie {
+        Cookie {
+            _name: self._name.clone(),
+            _value: self._value.clone(),
+            _domain: self._domain.clone(),
+            _path: self._path.clone(),
+        }
     }
 }
 
@@ -43,6 +129,39 @@ impl CookiesJar {
             cookies: HashMap::new(),
         }
     }
+
+    pub fn add(&mut self, c: Cookie) {
+        let n = c.name();
+        self.cookies.insert(String::from(n), c);
+    }
+
+    pub fn to_json(&self) -> Option<JsonValue> {
+        let mut arr = JsonValue::new_array();
+        for (_, val) in self.cookies.iter() {
+            let obj = val.to_json();
+            match obj {
+                Some(obj) => match arr.push(obj) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        println!("{}", gettext("Can not append a cookie to cookies jar."));
+                        return None;
+                    }
+                },
+                None => {
+                    return None;
+                }
+            }
+        }
+        Some(arr)
+    }
+}
+
+impl Clone for CookiesJar {
+    fn clone(&self) -> CookiesJar {
+        CookiesJar {
+            cookies: self.cookies.clone(),
+        }
+    }
 }
 
 pub struct CookiesJson {
@@ -54,6 +173,14 @@ impl CookiesJson {
         CookiesJson {
             cookies: HashMap::new(),
         }
+    }
+
+    pub fn add(&mut self, key: &str, jar: CookiesJar) {
+        self.cookies.insert(String::from(key), jar);
+    }
+
+    pub fn get(&self, key: &str) -> Option<&CookiesJar> {
+        self.cookies.get(key)
     }
 
     pub fn read(&mut self, file_name: Option<&str>) -> bool {
@@ -200,7 +327,7 @@ impl CookiesJson {
                 if !name.is_string() || !value.is_string() {
                     println!(
                         "{}\"{}\"",
-                        gettext("Cookie's Name or value is non-string: "),
+                        gettext("Cookie's name or value is non-string: "),
                         path_to_str(path)
                     );
                     return false;
@@ -211,7 +338,7 @@ impl CookiesJson {
                     None => {
                         println!(
                             "{}\"{}\"",
-                            gettext("Cookie's Name or value is non-string: "),
+                            gettext("Cookie's name or value is non-string: "),
                             path_to_str(path)
                         );
                         return false;
@@ -224,20 +351,70 @@ impl CookiesJson {
                     None => {
                         println!(
                             "{}\"{}\"",
-                            gettext("Cookie's Name or value is non-string: "),
+                            gettext("Cookie's name or value is non-string: "),
                             path_to_str(path)
                         );
                         return false;
                     }
                 }
                 let value = r.unwrap();
-                let c = Cookie::new(name, value);
-                jar.cookies.insert(String::from(name), c);
+                let mut c = Cookie::new(name, value);
+                if co.has_key("domain") {
+                    let dm = &co["domain"];
+                    if !dm.is_string() {
+                        println!(
+                            "{}\"{}\"",
+                            gettext("Cookie's domain is non-string: "),
+                            path_to_str(path)
+                        );
+                        return false;
+                    }
+                    let r = dm.as_str();
+                    match r {
+                        Some(_) => {}
+                        None => {
+                            println!(
+                                "{}\"{}\"",
+                                gettext("Cookie's domain is non-string: "),
+                                path_to_str(path)
+                            );
+                            return false;
+                        }
+                    }
+                    let dm = r.unwrap();
+                    c.set_domain(Some(dm));
+                }
+                if co.has_key("path") {
+                    let ph = &co["path"];
+                    if !ph.is_string() {
+                        println!(
+                            "{}\"{}\"",
+                            gettext("Cookie's path is non-string: "),
+                            path_to_str(path)
+                        );
+                        return false;
+                    }
+                    let r = ph.as_str();
+                    match r {
+                        Some(_) => {}
+                        None => {
+                            println!(
+                                "{}\"{}\"",
+                                gettext("Cookie's path is non-string: "),
+                                path_to_str(path)
+                            );
+                            return false;
+                        }
+                    }
+                    let ph = r.unwrap();
+                    c.set_path(Some(ph));
+                }
+                jar.add(c);
                 tco = it.next();
             }
-            self.cookies.insert(String::from(key), jar);
+            self.add(key, jar);
             en = ent.next();
         }
-        return false;
+        return true;
     }
 }
