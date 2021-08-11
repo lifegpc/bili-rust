@@ -7,6 +7,7 @@ mod opt_list;
 mod path;
 mod provider_base;
 mod providers;
+mod webdriver;
 
 use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
@@ -45,7 +46,7 @@ impl Main {
             if self.opt.has_option("help") {
                 providers::add_all_opts(&mut self.opt);
                 let help = self.opt.get_option("help");
-                self.opt.print_help(help);
+                self.opt.print_help(help, self.opt.has_option("help-deps"));
                 return 0;
             } else if self.opt.has_option("version") {
                 self.print_version();

@@ -211,6 +211,7 @@ pub struct OptStore {
     args: Vec<String>,
     ind: usize,
     out_des: HashMap<String, OptDesStore>,
+    des_dep: HashMap<String, Vec<String>>,
 }
 
 impl OptStore {
@@ -221,12 +222,32 @@ impl OptStore {
             args: std::env::args().collect(),
             ind: 1,
             out_des: HashMap::new(),
+            des_dep: HashMap::new(),
         }
     }
 
     pub fn add(&mut self, key: &str, list: Vec<OptDes>) {
         let des = OptDesStore::from(list);
         self.out_des.insert(String::from(key), des);
+    }
+
+    pub fn add_with_dependence(
+        &mut self,
+        key: &str,
+        list: Vec<OptDes>,
+        deps: Vec<&'static str>,
+    ) -> Option<bool> {
+        let mut ndeps: Vec<String> = Vec::new();
+        for dep in deps.iter() {
+            if !self.out_des.contains_key(*dep) {
+                return None;
+            }
+            ndeps.push(String::from(*dep));
+        }
+        let des = OptDesStore::from(list);
+        self.out_des.insert(String::from(key), des);
+        self.des_dep.insert(String::from(key), ndeps);
+        Some(true)
     }
 
     pub fn get_des(&self, key: &str) -> Option<OptDes> {
@@ -241,6 +262,27 @@ impl OptStore {
             }
         }
         None
+    }
+
+    pub fn get_des_dependence(&self, key: &str) -> Option<Vec<String>> {
+        if self.des_dep.contains_key(key) {
+            let mut list: Vec<String> = Vec::new();
+            self.get_des_dependence_internal(key, &mut list);
+            return Some(list);
+        }
+        None
+    }
+
+    fn get_des_dependence_internal(&self, key: &str, list: &mut Vec<String>) {
+        if self.des_dep.contains_key(key) {
+            let l = self.des_dep.get(key).unwrap();
+            for i in l.iter() {
+                if !list.contains(i) {
+                    list.push(i.clone());
+                    self.get_des_dependence_internal(i.as_str(), list);
+                }
+            }
+        }
     }
     /// If option not found or option don't have any value, return None
     pub fn get_option(&self, key: &str) -> Option<String> {
@@ -414,9 +456,10 @@ impl OptStore {
         return None;
     }
 
-    pub fn print_help(&self, detail: Option<String>) {
+    pub fn print_help(&self, detail: Option<String>, help_deps: bool) {
         if detail.is_none() || detail.clone().unwrap() == "full" {
             println!("bili <url> [options]");
+            println!("{}", gettext("Basic options:"));
             self.des.print_help();
         }
         for (name, val) in self.out_des.iter() {
@@ -430,6 +473,26 @@ impl OptStore {
                         gettext("Options provided from <provider>: ").replace("<provider>", name);
                     println!("{}", s);
                     val.print_help();
+                    if d != "full" {
+                        let deps = self.get_des_dependence(name);
+                        match deps {
+                            Some(deps) => {
+                                for dep in deps.iter() {
+                                    let dd = self.out_des.get(dep).unwrap();
+                                    if !help_deps {
+                                        let s = gettext("<provider> provider <num> options for <provider2>, add --help-deps to see.").replace("<provider>", dep.as_str()).replace("<num>", format!("{}", dd.len()).as_str()).replace("<provider2>", name);
+                                        println!("{}", s);
+                                    } else {
+                                        let s = gettext("Options provided from <provider>: ")
+                                            .replace("<provider>", dep);
+                                        println!("{}", s);
+                                        dd.print_help();
+                                    }
+                                }
+                            }
+                            None => {}
+                        }
+                    }
                 }
             }
         }
@@ -444,6 +507,7 @@ impl Clone for OptStore {
             args: self.args.clone(),
             ind: self.ind.clone(),
             out_des: self.out_des.clone(),
+            des_dep: self.des_dep.clone(),
         }
     }
 }
