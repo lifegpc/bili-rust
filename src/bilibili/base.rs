@@ -8,11 +8,14 @@ use crate::getopt::OptDes;
 use crate::getopt::OptStore;
 use crate::http_client::CookieClient;
 use crate::i18n::gettext;
+use crate::opt_list::get_webdriver_options;
 use crate::provider_base::Provider;
+use crate::webdriver::WebDriverStarter;
 use futures::executor::block_on;
 use json::JsonValue;
 use reqwest::header::HeaderMap;
 use reqwest::Client;
+use subprocess::Popen;
 
 pub struct BiliBaseProvider {
     client: Option<CookieClient>,
@@ -59,6 +62,7 @@ impl Provider for BiliBaseProvider {
     }
 
     fn add_custom_options(&self, opt: &mut OptStore) {
+        opt.add("WebDriver", get_webdriver_options());
         opt.add(self.provider_name(), BiliBaseProvider::get_custom_options());
     }
 
@@ -140,6 +144,23 @@ impl Provider for BiliBaseProvider {
     }
 
     fn login(&self, _jar: &mut CookiesJar) -> bool {
+        let starter = WebDriverStarter::new(self.opt.clone());
+        let re = starter.get();
+        if re.is_none() {
+            return false;
+        }
+        let re = re.unwrap();
+        let mut p: Option<Popen> = None;
+        if !re.cml.is_none() {
+            p = starter.start_server(re.cml.unwrap());
+            if p.is_none() {
+                return false;
+            }
+            println!("{}", gettext("Started webdriver server."));
+        }
+        if !p.is_none() {
+            starter.kill_server(&mut p.unwrap());
+        }
         return false;
     }
 
