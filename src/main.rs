@@ -3,6 +3,7 @@ mod cookies_json;
 mod getopt;
 mod http_client;
 mod i18n;
+mod opt_list;
 mod path;
 mod provider_base;
 mod providers;
@@ -28,6 +29,14 @@ impl Main {
         }
     }
 
+    fn print_version(&self) {
+        let v = env!("CARGO_PKG_VERSION");
+        println!("bili  v{}  Copyright (C) 2021  lifegpc", v);
+        println!("This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.");
+        println!("This is free software, and you are welcome to redistribute it");
+        println!("under certain conditions.");
+    }
+
     fn run(&mut self) -> i32 {
         let url = self.opt.parse_url();
         if url.is_none() {
@@ -35,13 +44,19 @@ impl Main {
                 return 1;
             }
             if self.opt.has_option("help") {
-                self.opt.print_help();
+                providers::add_all_opts(&mut self.opt);
+                let help = self.opt.get_option("help");
+                self.opt.print_help(help);
+                return 0;
+            } else if self.opt.has_option("version") {
+                self.print_version();
                 return 0;
             }
             println!("{}", gettext("Url is needed."));
             return 1;
         }
-        let pro = providers::match_provider("");
+        let url = url.unwrap();
+        let pro = providers::match_provider(url.as_str());
         match pro {
             Some(_) => {}
             None => {
@@ -50,11 +65,17 @@ impl Main {
             }
         }
         let mut pro = pro.unwrap();
+        if pro.has_custom_options() {
+            pro.add_custom_options(&mut self.opt);
+        }
+        if !self.opt.parse_options() {
+            return 1;
+        }
         let jar = match pro.get_default_cookie_jar_name() {
             Some(s) => self.cookies.get(s),
             None => None,
         };
-        if !pro.init(jar) {
+        if !pro.init(jar, self.opt.clone()) {
             println!("{}", gettext("Can not initialize provider."));
             return 1;
         }

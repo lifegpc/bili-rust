@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: bili\n"
-"POT-Creation-Date: 2021-08-11 07:39+0800\n"
+"POT-Creation-Date: 2021-08-11 10:16+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,12 +14,16 @@ msgstr ""
 "X-Poedit-Basepath: ../src\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: bilibili/base.rs:103 bilibili\base.rs:103
+#: bilibili/base.rs:112 bilibili\base.rs:112
 msgid "Error: code return from API is not an integer."
 msgstr ""
 
-#: bilibili/base.rs:117 bilibili\base.rs:117
+#: bilibili/base.rs:126 bilibili\base.rs:126
 msgid "Unknown codition: "
+msgstr ""
+
+#: bilibili\opt_list.rs:5 bilibili/opt_list.rs:5
+msgid "The video part number of a page."
 msgstr ""
 
 #: cookies_json.rs:87
@@ -82,50 +86,62 @@ msgstr ""
 msgid "Cookie's path is non-string: "
 msgstr ""
 
-#: getopt.rs:132
-msgid "Print help message"
-msgstr ""
-
-#: getopt.rs:235 getopt.rs:281 getopt.rs:291
+#: getopt.rs:290 getopt.rs:336 getopt.rs:346
 msgid "<s> is not a vaild option."
 msgstr ""
 
-#: getopt.rs:259 getopt.rs:268 getopt.rs:327 getopt.rs:335
+#: getopt.rs:314 getopt.rs:323 getopt.rs:382 getopt.rs:390
 msgid "<option> need an argument."
+msgstr ""
+
+#: getopt.rs:426
+msgid "<provider> provide <num> options, use --help full or --help <provider> to see details."
+msgstr ""
+
+#: getopt.rs:432
+msgid "Options provided from <provider>: "
 msgstr ""
 
 #: http_client.rs:38
 msgid "Error when request: "
 msgstr ""
 
-#: main.rs:41
+#: opt_list.rs:6
+msgid "Print help message"
+msgstr ""
+
+#: opt_list.rs:7
+msgid "Print version of bili"
+msgstr ""
+
+#: main.rs:55
 msgid "Url is needed."
 msgstr ""
 
-#: main.rs:48
+#: main.rs:63
 msgid "Can not find suitable provider."
 msgstr ""
 
-#: main.rs:58
+#: main.rs:79
 msgid "Can not initialize provider."
 msgstr ""
 
-#: main.rs:64
+#: main.rs:85
 msgid "Error occured when checking login."
 msgstr ""
 
-#: main.rs:74
+#: main.rs:95
 msgid "Name is needed for cookie jar."
 msgstr ""
 
-#: main.rs:81
+#: main.rs:102
 msgid "Login failed."
 msgstr ""
 
-#: main.rs:90
+#: main.rs:111
 msgid "Warn: fuction check_logined and logined return different result."
 msgstr ""
 
-#: main.rs:95
+#: main.rs:116
 msgid "Verify login successfully."
 msgstr ""

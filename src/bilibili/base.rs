@@ -2,7 +2,10 @@ extern crate futures;
 extern crate json;
 extern crate reqwest;
 
+use crate::bilibili::opt_list::get_bili_base_options;
 use crate::cookies_json::CookiesJar;
+use crate::getopt::OptDes;
+use crate::getopt::OptStore;
 use crate::http_client::CookieClient;
 use crate::i18n::gettext;
 use crate::provider_base::Provider;
@@ -14,6 +17,7 @@ use reqwest::Client;
 pub struct BiliBaseProvider {
     client: Option<CookieClient>,
     user_info: Option<JsonValue>,
+    opt: Option<OptStore>,
 }
 
 impl BiliBaseProvider {
@@ -50,7 +54,12 @@ impl Provider for BiliBaseProvider {
         BiliBaseProvider {
             client: None,
             user_info: None,
+            opt: None,
         }
+    }
+
+    fn add_custom_options(&self, opt: &mut OptStore) {
+        opt.add(self.provider_name(), BiliBaseProvider::get_custom_options());
     }
 
     fn can_login(&self) -> bool {
@@ -118,8 +127,16 @@ impl Provider for BiliBaseProvider {
         return None;
     }
 
+    fn get_custom_options() -> Vec<OptDes> {
+        get_bili_base_options()
+    }
+
     fn get_default_cookie_jar_name(&self) -> Option<&str> {
         Some("bili")
+    }
+
+    fn has_custom_options(&self) -> bool {
+        true
     }
 
     fn login(&self, _jar: &mut CookiesJar) -> bool {
@@ -146,11 +163,16 @@ impl Provider for BiliBaseProvider {
         }
     }
 
-    fn init(&mut self, jar: Option<&CookiesJar>) -> bool {
+    fn init(&mut self, jar: Option<&CookiesJar>, opt: OptStore) -> bool {
+        self.opt = Some(opt);
         self.init_client(jar)
     }
 
     fn match_url(_url: &str) -> bool {
         return true;
+    }
+
+    fn provider_name(&self) -> &'static str {
+        "BiliBaseProvider"
     }
 }
