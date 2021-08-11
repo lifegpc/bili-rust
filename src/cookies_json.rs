@@ -8,8 +8,10 @@ use json::object;
 use json::JsonValue;
 use std::clone::Clone;
 use std::collections::HashMap;
+use std::fs::remove_file;
 use std::fs::File;
 use std::io::Read;
+use std::io::Write;
 use std::path::Path;
 
 pub struct Cookie {
@@ -418,6 +420,78 @@ impl CookiesJson {
             }
             self.add(key, jar);
             en = ent.next();
+        }
+        return true;
+    }
+
+    pub fn save(&self, file_name: Option<String>) -> bool {
+        let s = self.to_str();
+        match s {
+            Some(_) => {},
+            None => {return false;}
+        }
+        let s = s.unwrap();
+        match file_name {
+            Some(f) => {
+                let re = self.save_internal(s, Path::new(f.as_str()));
+                re
+            }
+            None => {
+                let re = get_exe_path();
+                match re {
+                    Some(pb) => {
+                        let mut tpb = pb;
+                        tpb.push("bili.cookies.json");
+                        let r = self.save_internal(s, tpb.as_path());
+                        r
+                    }
+                    None => false,
+                }
+            }
+        }
+    }
+
+    fn save_internal(&self, s: String, path: &Path) -> bool {
+        if path.exists() {
+            match remove_file(path) {
+                Ok(_) => {}
+                Err(_) => {
+                    println!(
+                        "{}\"{}\"",
+                        gettext("Can not remove file: "),
+                        path_to_str(path)
+                    );
+                    return false;
+                }
+            }
+        }
+        let r = File::create(path);
+        match r {
+            Ok(_) => {}
+            Err(_) => {
+                println!(
+                    "{}\"{}\"",
+                    gettext("Can not save to cookie file: "),
+                    path_to_str(path)
+                );
+                return false;
+            }
+        }
+        let mut f = r.unwrap();
+        match f.write(s.as_bytes()) {
+            Ok(_) => {}
+            Err(_) => {
+                println!(
+                    "{}\"{}\"",
+                    gettext("Can not write data to cookie file: "),
+                    path_to_str(path)
+                );
+                return false;
+            }
+        }
+        match f.flush() {
+            Ok(_) => {}
+            Err(_) => {}
         }
         return true;
     }

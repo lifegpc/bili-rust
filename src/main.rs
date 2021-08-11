@@ -109,6 +109,9 @@ impl Main {
                         return 1;
                     }
                     self.cookies.add(k.as_str(), jar);
+                    if !self.cookies.save(self.opt.get_option("cookies")) {
+                        return 1;
+                    }
                 }
                 let s = pro.logined();
                 if s != p {
