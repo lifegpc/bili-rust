@@ -13,6 +13,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
+use thirtyfour::common::cookie::Cookie as TFCookie;
 
 pub struct Cookie {
     _name: String,
@@ -73,6 +74,43 @@ impl Cookie {
                 self._path = None;
             }
         }
+    }
+
+    pub fn from_thirtyfour_cookie(c: TFCookie) -> Option<Cookie> {
+        let name = c.name();
+        let value = c.value();
+        let mut v = String::new();
+        if value.is_string() {
+            let s = value.as_str().unwrap();
+            v += s;
+        } else if value.is_i64() {
+            let s = value.as_i64().unwrap();
+            v = format!("{}", s);
+        } else if value.is_u64() {
+            let s = value.as_u64().unwrap();
+            v = format!("{}", s);
+        } else if value.is_f64() {
+            let s = value.as_f64().unwrap();
+            v = format!("{}", s);
+        } else {
+            return None;
+        }
+        let mut r = Cookie::new(name, v.as_str());
+        match c.path() {
+            Some(p) => {
+                let v = p.clone();
+                r.set_path(Some(v.as_str()));
+            }
+            None => {}
+        }
+        match c.domain() {
+            Some(p) => {
+                let v = p.clone();
+                r.set_domain(Some(v.as_str()));
+            }
+            None => {}
+        }
+        Some(r)
     }
 
     pub fn to_json(&self) -> Option<JsonValue> {
@@ -427,8 +465,10 @@ impl CookiesJson {
     pub fn save(&self, file_name: Option<String>) -> bool {
         let s = self.to_str();
         match s {
-            Some(_) => {},
-            None => {return false;}
+            Some(_) => {}
+            None => {
+                return false;
+            }
         }
         let s = s.unwrap();
         match file_name {
