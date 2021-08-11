@@ -26,6 +26,9 @@ impl OptDes {
         if !short_name.is_none() && short_name.unwrap().len() != 1 {
             return None;
         }
+        if has_value && value_display_name.is_none() {
+            return None;
+        }
         Some(OptDes {
             _name: String::from(name),
             _short_name: match short_name {
@@ -106,11 +109,8 @@ impl Opt {
         self._name.as_str()
     }
 
-    pub fn value(&self) -> Option<&str> {
-        match &self._value {
-            Some(v) => Some(v.as_str()),
-            None => None,
-        }
+    pub fn value(&self) -> Option<String> {
+        self._value.clone()
     }
 }
 
@@ -244,15 +244,13 @@ impl OptStore {
     }
     /// If option not found or option don't have any value, return None
     pub fn get_option(&self, key: &str) -> Option<String> {
+        let mut last = None;
         for i in self.list.iter() {
             if i.name() == key {
-                match i.value() {
-                    Some(i) => return Some(String::from(i)),
-                    None => {}
-                }
+                last = i.value();
             }
         }
-        None
+        last
     }
 
     pub fn get_des_by_short_name(&self, key: &str) -> Option<OptDes> {

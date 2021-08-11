@@ -187,11 +187,11 @@ impl CookiesJson {
         self.cookies.get(key)
     }
 
-    pub fn read(&mut self, file_name: Option<&str>) -> bool {
+    pub fn read(&mut self, file_name: Option<String>) -> bool {
         self.cookies.clear();
         match file_name {
             Some(f) => {
-                let re = self.read_internal(Path::new(f));
+                let re = self.read_internal(Path::new(f.as_str()));
                 if !re {
                     println!("{}\"{}\"", gettext("Can not load custom cookies file: "), f);
                     self.cookies.clear();
@@ -420,6 +420,33 @@ impl CookiesJson {
             en = ent.next();
         }
         return true;
+    }
+
+    pub fn to_json(&self) -> Option<JsonValue> {
+        let mut obj = JsonValue::new_object();
+        for (key, val) in self.cookies.iter() {
+            let re = val.to_json();
+            if re.is_none() {
+                return None;
+            }
+            let re = re.unwrap();
+            let r = obj.insert(key.as_str(), re);
+            match r {
+                Ok(_) => {}
+                Err(_) => {
+                    println!("{}", gettext("Can not add a cookie jar to cookies object."));
+                    return None;
+                }
+            }
+        }
+        Some(obj)
+    }
+
+    pub fn to_str(&self) -> Option<String> {
+        match self.to_json() {
+            Some(v) => Some(v.dump()),
+            None => None,
+        }
     }
 }
 

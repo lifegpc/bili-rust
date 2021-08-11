@@ -21,8 +21,7 @@ struct Main {
 
 impl Main {
     fn new() -> Main {
-        let mut cookies = CookiesJson::new();
-        cookies.read(None);
+        let cookies = CookiesJson::new();
         Main {
             cookies: cookies,
             opt: OptStore::new(),
@@ -71,9 +70,13 @@ impl Main {
         if !self.opt.parse_options() {
             return 1;
         }
-        let jar = match pro.get_default_cookie_jar_name() {
-            Some(s) => self.cookies.get(s),
-            None => None,
+        self.cookies.read(self.opt.get_option("cookies"));
+        let jar = match self.opt.get_option("cookie-jar") {
+            Some(s) => self.cookies.get(s.as_str()),
+            None => match pro.get_default_cookie_jar_name() {
+                Some(s) => self.cookies.get(s),
+                None => None,
+            },
         };
         if !pro.init(jar, self.opt.clone()) {
             println!("{}", gettext("Can not initialize provider."));
@@ -83,17 +86,20 @@ impl Main {
             let p = pro.check_logined();
             if p.is_none() {
                 println!("{}", gettext("Error occured when checking login."));
-                if pro.login_required() {
+                if pro.login_required() || self.opt.has_option("login") {
                     return 1;
                 }
             } else {
                 let mut p = p.unwrap();
-                if !p && pro.login_required() {
-                    let k = match pro.get_default_cookie_jar_name() {
+                if !p && (pro.login_required() || self.opt.has_option("login")) {
+                    let k = match self.opt.get_option("cookie-jar") {
                         Some(s) => s,
-                        None => {
-                            println!("{}", gettext("Name is needed for cookie jar."));
-                            return 1;
+                        None => match pro.get_default_cookie_jar_name() {
+                            Some(s) => String::from(s),
+                            None => {
+                                println!("{}", gettext("Name is needed for cookie jar."));
+                                return 1;
+                            }
                         }
                     };
                     let mut jar = CookiesJar::new();
@@ -102,7 +108,7 @@ impl Main {
                         println!("{}", gettext("Login failed."));
                         return 1;
                     }
-                    self.cookies.add(k, jar);
+                    self.cookies.add(k.as_str(), jar);
                 }
                 let s = pro.logined();
                 if s != p {
@@ -116,6 +122,11 @@ impl Main {
                     println!("{}", gettext("Verify login successfully."));
                 }
             }
+        } else if self.opt.has_option("login") {
+            let s = gettext("<provider> don't support login.")
+                .replace("<provider>", pro.provider_name());
+            println!("{}", s);
+            return -1;
         }
         return 0;
     }

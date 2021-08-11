@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: bili\n"
-"POT-Creation-Date: 2021-08-11 10:16+0800\n"
+"POT-Creation-Date: 2021-08-11 11:14+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -86,19 +86,23 @@ msgstr ""
 msgid "Cookie's path is non-string: "
 msgstr ""
 
-#: getopt.rs:290 getopt.rs:336 getopt.rs:346
+#: cookies_json.rs:437
+msgid "Can not add a cookie jar to cookies object."
+msgstr ""
+
+#: getopt.rs:288 getopt.rs:334 getopt.rs:344
 msgid "<s> is not a vaild option."
 msgstr ""
 
-#: getopt.rs:314 getopt.rs:323 getopt.rs:382 getopt.rs:390
+#: getopt.rs:312 getopt.rs:321 getopt.rs:380 getopt.rs:388
 msgid "<option> need an argument."
 msgstr ""
 
-#: getopt.rs:426
+#: getopt.rs:424
 msgid "<provider> provide <num> options, use --help full or --help <provider> to see details."
 msgstr ""
 
-#: getopt.rs:432
+#: getopt.rs:430
 msgid "Options provided from <provider>: "
 msgstr ""
 
@@ -107,41 +111,57 @@ msgid "Error when request: "
 msgstr ""
 
 #: opt_list.rs:6
-msgid "Print help message"
+msgid "The location of cookies file. Default: \"bili.cookies.json\" in executable's path."
 msgstr ""
 
 #: opt_list.rs:7
+msgid "The name of cookie jar which cookies will be stored."
+msgstr ""
+
+#: opt_list.rs:8
+msgid "Print help message"
+msgstr ""
+
+#: opt_list.rs:9
+msgid "If not logined, force to login."
+msgstr ""
+
+#: opt_list.rs:10
 msgid "Print version of bili"
 msgstr ""
 
-#: main.rs:55
+#: main.rs:54
 msgid "Url is needed."
 msgstr ""
 
-#: main.rs:63
+#: main.rs:62
 msgid "Can not find suitable provider."
 msgstr ""
 
-#: main.rs:79
+#: main.rs:82
 msgid "Can not initialize provider."
 msgstr ""
 
-#: main.rs:85
+#: main.rs:88
 msgid "Error occured when checking login."
 msgstr ""
 
-#: main.rs:95
+#: main.rs:100
 msgid "Name is needed for cookie jar."
 msgstr ""
 
-#: main.rs:102
+#: main.rs:108
 msgid "Login failed."
 msgstr ""
 
-#: main.rs:111
+#: main.rs:117
 msgid "Warn: fuction check_logined and logined return different result."
 msgstr ""
 
-#: main.rs:116
+#: main.rs:122
 msgid "Verify login successfully."
+msgstr ""
+
+#: main.rs:126
+msgid "<provider> don't support login."
 msgstr ""
