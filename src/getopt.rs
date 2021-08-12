@@ -160,9 +160,9 @@ impl OptDesStore {
         for i in self.list.iter() {
             let sn = match i.short_name() {
                 Some(r) => format!("-{}", r.as_str()),
-                None => String::from(""),
+                None => String::from("  "),
             };
-            let mut ss = format!("{}\t--{}", sn.as_str(), i.name());
+            let mut ss = format!("{}  --{}", sn.as_str(), i.name());
             if i.has_value() {
                 let nn = if i.need_value() {
                     format!("<{}>", i.value_display_name().unwrap().as_str())
@@ -172,7 +172,11 @@ impl OptDesStore {
                 ss += " ";
                 ss += nn.as_str();
             }
-            ss += "\t";
+            if ss.len() >= 40 {
+                ss += "\t";
+            } else {
+                ss += " ".repeat(40 - ss.len()).as_str();
+            }
             ss += i.description();
             if s.len() > 0 {
                 s += "\n";
