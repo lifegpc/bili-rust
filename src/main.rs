@@ -1,11 +1,9 @@
-mod bilibili;
 mod cookies_json;
 mod getopt;
 mod http_client;
 mod i18n;
 mod opt_list;
 mod path;
-mod provider_base;
 mod providers;
 mod webdriver;
 
@@ -13,7 +11,7 @@ use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
 use getopt::OptStore;
 use i18n::gettext;
-use provider_base::Provider;
+use providers::provider_base::Provider;
 
 struct Main {
     cookies: CookiesJson,
@@ -101,7 +99,7 @@ impl Main {
                                 println!("{}", gettext("Name is needed for cookie jar."));
                                 return 1;
                             }
-                        }
+                        },
                     };
                     let mut jar = CookiesJar::new();
                     p = pro.login(&mut jar);

@@ -3,7 +3,6 @@ extern crate json;
 extern crate reqwest;
 extern crate thirtyfour;
 
-use crate::bilibili::opt_list::get_bili_base_options;
 use crate::cookies_json::Cookie;
 use crate::cookies_json::CookiesJar;
 use crate::getopt::OptDes;
@@ -11,7 +10,8 @@ use crate::getopt::OptStore;
 use crate::http_client::CookieClient;
 use crate::i18n::gettext;
 use crate::opt_list::get_webdriver_options;
-use crate::provider_base::Provider;
+use crate::providers::bilibili::opt_list::get_bili_base_options;
+use crate::providers::provider_base::Provider;
 use crate::webdriver::WebDriverStarter;
 use crate::webdriver::WebDriverType;
 use futures::executor::block_on;

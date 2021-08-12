@@ -1,7 +1,10 @@
-use crate::bilibili::base::BiliBaseProvider;
+pub mod bilibili;
+pub mod provider_base;
+
 use crate::getopt::OptStore;
 use crate::opt_list::get_webdriver_options;
-use crate::provider_base::Provider;
+use bilibili::base::BiliBaseProvider;
+use provider_base::Provider;
 
 pub fn match_provider(url: &str) -> Option<impl Provider> {
     if BiliBaseProvider::match_url(url) {
