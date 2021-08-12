@@ -5,6 +5,7 @@ mod i18n;
 mod opt_list;
 mod path;
 mod providers;
+mod settings;
 mod webdriver;
 
 use cookies_json::CookiesJar;
@@ -12,10 +13,12 @@ use cookies_json::CookiesJson;
 use getopt::OptStore;
 use i18n::gettext;
 use providers::provider_base::Provider;
+use settings::SettingStore;
 
 struct Main {
     cookies: CookiesJson,
     opt: OptStore,
+    se: SettingStore,
 }
 
 impl Main {
@@ -24,6 +27,7 @@ impl Main {
         Main {
             cookies: cookies,
             opt: OptStore::new(),
+            se: SettingStore::new(),
         }
     }
 
@@ -67,6 +71,9 @@ impl Main {
             pro.add_custom_options(&mut self.opt);
         }
         if !self.opt.parse_options() {
+            return 1;
+        }
+        if !self.se.read(self.opt.get_option("config"), false) {
             return 1;
         }
         self.cookies.read(self.opt.get_option("cookies"));
