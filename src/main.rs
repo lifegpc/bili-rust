@@ -31,6 +31,19 @@ impl Main {
         }
     }
 
+    fn get_cookies(&self) -> Option<String> {
+        let re = self.opt.get_option("cookies");
+        if !re.is_none() {
+            return re;
+        }
+        let re = self.se.get_settings("basic", "cookies");
+        if !re.is_none() {
+            let re = re.unwrap();
+            return Some(String::from(re.as_str().unwrap()))
+        }
+        None
+    }
+
     fn print_version(&self) {
         let v = env!("CARGO_PKG_VERSION");
         println!("bili  v{}  Copyright (C) 2021  lifegpc", v);
@@ -53,6 +66,13 @@ impl Main {
             } else if self.opt.has_option("version") {
                 self.print_version();
                 return 0;
+            } else if self.opt.has_option("help-settings") {
+                providers::add_all_settings(&mut self.se);
+                self.se.print_help(
+                    self.opt.get_option("help-settings"),
+                    self.opt.has_option("help-deps"),
+                );
+                return 0;
             }
             println!("{}", gettext("Url is needed."));
             return 1;
@@ -73,10 +93,13 @@ impl Main {
         if !self.opt.parse_options() {
             return 1;
         }
+        if pro.has_custom_settings() {
+            pro.add_custom_settings(&mut self.se);
+        }
         if !self.se.read(self.opt.get_option("config"), false) {
             return 1;
         }
-        self.cookies.read(self.opt.get_option("cookies"));
+        self.cookies.read(self.get_cookies());
         let jar = match self.opt.get_option("cookie-jar") {
             Some(s) => self.cookies.get(s.as_str()),
             None => match pro.get_default_cookie_jar_name() {
@@ -84,7 +107,7 @@ impl Main {
                 None => None,
             },
         };
-        if !pro.init(jar, self.opt.clone()) {
+        if !pro.init(jar, self.opt.clone(), self.se.clone()) {
             println!("{}", gettext("Can not initialize provider."));
             return 1;
         }
@@ -115,7 +138,7 @@ impl Main {
                         return 1;
                     }
                     self.cookies.add(k.as_str(), jar);
-                    if !self.cookies.save(self.opt.get_option("cookies")) {
+                    if !self.cookies.save(self.get_cookies()) {
                         return 1;
                     }
                 }

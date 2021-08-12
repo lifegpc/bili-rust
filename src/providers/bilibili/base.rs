@@ -10,8 +10,10 @@ use crate::getopt::OptStore;
 use crate::http_client::CookieClient;
 use crate::i18n::gettext;
 use crate::opt_list::get_webdriver_options;
+use crate::opt_list::get_webdriver_settings;
 use crate::providers::bilibili::opt_list::get_bili_base_options;
 use crate::providers::provider_base::Provider;
+use crate::settings::SettingStore;
 use crate::webdriver::WebDriverStarter;
 use crate::webdriver::WebDriverType;
 use futures::executor::block_on;
@@ -29,6 +31,7 @@ pub struct BiliBaseProvider {
     client: Option<CookieClient>,
     user_info: Option<JsonValue>,
     opt: Option<OptStore>,
+    se: Option<SettingStore>,
 }
 
 impl BiliBaseProvider {
@@ -66,12 +69,17 @@ impl Provider for BiliBaseProvider {
             client: None,
             user_info: None,
             opt: None,
+            se: None,
         }
     }
 
     fn add_custom_options(&self, opt: &mut OptStore) {
         opt.add("WebDriver", get_webdriver_options());
         opt.add(self.provider_name(), BiliBaseProvider::get_custom_options());
+    }
+
+    fn add_custom_settings(&self, store: &mut SettingStore) {
+        store.add("WebDriver", get_webdriver_settings());
     }
 
     fn can_login(&self) -> bool {
@@ -151,8 +159,12 @@ impl Provider for BiliBaseProvider {
         true
     }
 
+    fn has_custom_settings(&self) -> bool {
+        true
+    }
+
     fn login(&mut self, jar: &mut CookiesJar) -> bool {
-        let starter = WebDriverStarter::new(self.opt.clone());
+        let starter = WebDriverStarter::new(self.opt.clone(), self.se.clone());
         let re = starter.get();
         if re.is_none() {
             return false;
@@ -269,8 +281,9 @@ impl Provider for BiliBaseProvider {
         }
     }
 
-    fn init(&mut self, jar: Option<&CookiesJar>, opt: OptStore) -> bool {
+    fn init(&mut self, jar: Option<&CookiesJar>, opt: OptStore, settings: SettingStore) -> bool {
         self.opt = Some(opt);
+        self.se = Some(settings);
         self.init_client(jar)
     }
 

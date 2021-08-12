@@ -29,3 +29,9 @@ pub fn get_webdriver_options() -> Vec<OptDes> {
         OptDes::new("chromedriver-server", None, gettext("The location of the chromedriver server. Such as http://locahost:4444"), true, true, Some("url")).unwrap(),
     ]
 }
+
+pub fn get_webdriver_settings() -> Vec<SettingDes> {
+    vec![
+        SettingDes::new("chrome", gettext("Start browser with chromedriver"), JsonValueType::Boolean, None).unwrap(),
+    ]
+}

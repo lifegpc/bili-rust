@@ -4,6 +4,7 @@ extern crate thirtyfour;
 
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
+use crate::settings::SettingStore;
 use core::time::Duration;
 use futures::executor::block_on;
 use std::clone::Clone;
@@ -11,8 +12,8 @@ use std::net::TcpListener;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 use subprocess::Redirection;
-use thirtyfour::GenericWebDriver;
 use thirtyfour::http::reqwest_async::ReqwestDriverAsync;
+use thirtyfour::GenericWebDriver;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum WebDriverType {
@@ -21,6 +22,7 @@ pub enum WebDriverType {
 
 pub struct WebDriverStarter {
     opt: Option<OptStore>,
+    se: Option<SettingStore>,
 }
 
 pub struct WebDriverUrlResult {
@@ -50,8 +52,8 @@ impl Clone for WebDriverUrlResult {
 }
 
 impl WebDriverStarter {
-    pub fn new(opt: Option<OptStore>) -> WebDriverStarter {
-        WebDriverStarter { opt }
+    pub fn new(opt: Option<OptStore>, se: Option<SettingStore>) -> WebDriverStarter {
+        WebDriverStarter { opt, se }
     }
 
     pub fn get(&self) -> Option<WebDriverUrlResult> {
@@ -152,15 +154,22 @@ impl WebDriverStarter {
     }
 
     fn get_prefered_broswer(&self) -> Option<WebDriverType> {
-        match &self.opt {
-            Some(opt) => {
-                if opt.has_option("chrome") {
+        if !self.opt.is_none() {
+            let opt = self.opt.as_ref().unwrap();
+            if opt.has_option("chrome") {
+                return Some(WebDriverType::Chrome);
+            }
+        }
+        if !self.se.is_none() {
+            let se = self.se.as_ref().unwrap();
+            let r = se.get_settings_as_bool("WebDriver", "chrome");
+            if !r.is_none() {
+                if r.unwrap() {
                     return Some(WebDriverType::Chrome);
                 }
-                return None;
             }
-            None => None,
         }
+        None
     }
 
     fn get_server_url_from_opt(&self, t: WebDriverType) -> Option<String> {
@@ -251,6 +260,7 @@ impl Clone for WebDriverStarter {
     fn clone(&self) -> WebDriverStarter {
         WebDriverStarter {
             opt: self.opt.clone(),
+            se: self.se.clone(),
         }
     }
 }

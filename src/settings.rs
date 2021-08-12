@@ -58,10 +58,6 @@ impl SettingDes {
         self._description.as_str()
     }
 
-    pub fn typ(&self) -> JsonValueType {
-        self._type.clone()
-    }
-
     pub fn type_name(&self) -> &'static str {
         if self._type == JsonValueType::Array {
             return "Array";
@@ -143,6 +139,10 @@ impl SettingDesStore {
             }
         }
         None
+    }
+
+    pub fn len(&self) -> usize {
+        self.list.len()
     }
 
     pub fn print_help(&self) {
@@ -227,6 +227,13 @@ impl SettingJar {
             .insert(String::from(key), SettingOpt::new(String::from(key), opt));
     }
 
+    pub fn get(&self, key: &str) -> Option<JsonValue> {
+        if self.settings.contains_key(key) {
+            return Some(self.settings.get(key).unwrap().value());
+        }
+        None
+    }
+
     pub fn to_json(&self) -> Option<JsonValue> {
         let mut v = JsonValue::new_object();
         for (_, val) in self.settings.iter() {
@@ -254,7 +261,7 @@ pub struct SettingStore {
     pub basic: SettingDesStore,
     pub maps: HashMap<String, SettingJar>,
     pub des_map: HashMap<String, SettingDesStore>,
-    pub des_dep: HashMap<String, String>,
+    pub des_dep: HashMap<String, Vec<String>>,
 }
 
 impl SettingStore {
@@ -267,6 +274,29 @@ impl SettingStore {
         }
     }
 
+    pub fn add(&mut self, des_key: &str, list: Vec<SettingDes>) {
+        self.des_map.insert(String::from(des_key), SettingDesStore::new(list));
+    }
+
+    pub fn add_with_dependence(
+        &mut self,
+        des_key: &str,
+        list: Vec<SettingDes>,
+        deps: Vec<&'static str>,
+    ) -> Option<bool> {
+        let mut ndeps: Vec<String> = Vec::new();
+        for dep in deps.iter() {
+            if !self.des_map.contains_key(*dep) {
+                return None;
+            }
+            ndeps.push(String::from(*dep));
+        }
+        let des = SettingDesStore::new(list);
+        self.des_map.insert(String::from(des_key), des);
+        self.des_dep.insert(String::from(des_key), ndeps);
+        Some(true)
+    }
+
     pub fn check_valid(&self, store_key: &str, key_in_map: &str, value: JsonValue) -> Option<bool> {
         if store_key == "basic" {
             return self.basic.check_valid(key_in_map, value);
@@ -275,6 +305,86 @@ impl SettingStore {
             return i.check_valid(key_in_map, value);
         }
         None
+    }
+
+    pub fn get_des_dependence(&self, key: &str) -> Option<Vec<String>> {
+        if self.des_dep.contains_key(key) {
+            let mut list: Vec<String> = Vec::new();
+            self.get_des_dependence_internal(key, &mut list);
+            return Some(list);
+        }
+        None
+    }
+
+    fn get_des_dependence_internal(&self, key: &str, list: &mut Vec<String>) {
+        if self.des_dep.contains_key(key) {
+            let l = self.des_dep.get(key).unwrap();
+            for i in l.iter() {
+                if !list.contains(i) {
+                    list.push(i.clone());
+                    self.get_des_dependence_internal(i.as_str(), list);
+                }
+            }
+        }
+    }
+
+    pub fn get_settings(&self, map_key: &str, key: &str) -> Option<JsonValue> {
+        if self.maps.contains_key(map_key) {
+            let map = self.maps.get(map_key).unwrap();
+            return map.get(key);
+        }
+        None
+    }
+
+    pub fn get_settings_as_bool(&self, map_key: &str, key: &str) -> Option<bool> {
+        let re = self.get_settings(map_key, key);
+        if !re.is_none() {
+            let re = re.unwrap();
+            return re.as_bool();
+        }
+        None
+    }
+
+    pub fn print_help(&self, detail: Option<String>, help_deps: bool) {
+        println!("{}", gettext("Format: Key: Type Description"));
+        if detail.is_none() || detail.clone().unwrap() == "full" {
+            println!("{}", gettext("Basic settings:"));
+            self.basic.print_help();
+        }
+        for (name, val) in self.des_map.iter() {
+            if detail.is_none() {
+                let s = gettext("<provider> provide <num> settings, use --help-settings full or --help-settings <provider> to see details.").replace("<provider>", name).replace("<num>", format!("{}", val.len()).as_str());
+                println!("{}", s);
+            } else {
+                let d = detail.clone().unwrap();
+                if d == "full" || &d == name {
+                    let s =
+                        gettext("Settings provided from <provider>: ").replace("<provider>", name);
+                    println!("{}", s);
+                    val.print_help();
+                    if d != "full" {
+                        let deps = self.get_des_dependence(name);
+                        match deps {
+                            Some(deps) => {
+                                for dep in deps.iter() {
+                                    let dd = self.des_map.get(dep).unwrap();
+                                    if !help_deps {
+                                        let s = gettext("<provider> provider <num> settings for <provider2>, add --help-deps to see.").replace("<provider>", dep.as_str()).replace("<num>", format!("{}", dd.len()).as_str()).replace("<provider2>", name);
+                                        println!("{}", s);
+                                    } else {
+                                        let s = gettext("Settings provided from <provider>: ")
+                                            .replace("<provider>", dep);
+                                        println!("{}", s);
+                                        dd.print_help();
+                                    }
+                                }
+                            }
+                            None => {}
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn read(&mut self, file_name: Option<String>, fix_invalid: bool) -> bool {
