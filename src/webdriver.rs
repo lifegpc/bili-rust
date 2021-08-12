@@ -1,13 +1,18 @@
+extern crate futures;
 extern crate subprocess;
+extern crate thirtyfour;
 
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
 use core::time::Duration;
+use futures::executor::block_on;
 use std::clone::Clone;
 use std::net::TcpListener;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 use subprocess::Redirection;
+use thirtyfour::GenericWebDriver;
+use thirtyfour::http::reqwest_async::ReqwestDriverAsync;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum WebDriverType {
@@ -58,11 +63,29 @@ impl WebDriverStarter {
                 let url = url.unwrap();
                 return Some(WebDriverUrlResult::new(url.as_str(), pb, None));
             }
+            let li = self.get_executable(pb);
+            for v in li.iter() {
+                println!("{}\"{}\"", gettext("Found working driver: "), v);
+                let port = self.get_port();
+                match port {
+                    Some(_) => {}
+                    None => {
+                        println!("{}", gettext("Can not get a working port."));
+                        return None;
+                    }
+                }
+                let port = port.unwrap();
+                println!("{}{}", gettext("Found working port: "), port);
+                let cml = self.get_command_line(pb, v.clone(), port);
+                let url = format!("http://127.0.0.1:{}", port);
+                return Some(WebDriverUrlResult::new(url.as_str(), pb, Some(cml)));
+            }
+            return None;
         }
         let li = self.get_executable(WebDriverType::Chrome);
         for v in li.iter() {
             if self.test_executable(v.clone()) {
-                println!("{}\"{}\"", gettext("Found working chrome driver: "), v);
+                println!("{}\"{}\"", gettext("Found working driver: "), v);
                 let port = self.get_port();
                 match port {
                     Some(_) => {}
@@ -156,6 +179,15 @@ impl WebDriverStarter {
         match p.kill() {
             Ok(_) => true,
             Err(_) => false,
+        }
+    }
+
+    pub fn quit_driver(&self, driver: GenericWebDriver<ReqwestDriverAsync>) {
+        match block_on(driver.quit()) {
+            Ok(_) => {}
+            Err(_) => {
+                println!("{}", gettext("Can not close browser. Please close it."));
+            }
         }
     }
 

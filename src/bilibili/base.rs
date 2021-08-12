@@ -1,8 +1,10 @@
 extern crate futures;
 extern crate json;
 extern crate reqwest;
+extern crate thirtyfour;
 
 use crate::bilibili::opt_list::get_bili_base_options;
+use crate::cookies_json::Cookie;
 use crate::cookies_json::CookiesJar;
 use crate::getopt::OptDes;
 use crate::getopt::OptStore;
@@ -11,11 +13,17 @@ use crate::i18n::gettext;
 use crate::opt_list::get_webdriver_options;
 use crate::provider_base::Provider;
 use crate::webdriver::WebDriverStarter;
+use crate::webdriver::WebDriverType;
 use futures::executor::block_on;
 use json::JsonValue;
 use reqwest::header::HeaderMap;
 use reqwest::Client;
+use std::thread::sleep;
+use std::time::Duration;
 use subprocess::Popen;
+use thirtyfour::prelude::DesiredCapabilities;
+use thirtyfour::prelude::WebDriver;
+use thirtyfour::prelude::WebDriverCommands;
 
 pub struct BiliBaseProvider {
     client: Option<CookieClient>,
@@ -143,7 +151,7 @@ impl Provider for BiliBaseProvider {
         true
     }
 
-    fn login(&self, _jar: &mut CookiesJar) -> bool {
+    fn login(&mut self, jar: &mut CookiesJar) -> bool {
         let starter = WebDriverStarter::new(self.opt.clone());
         let re = starter.get();
         if re.is_none() {
@@ -158,10 +166,87 @@ impl Provider for BiliBaseProvider {
             }
             println!("{}", gettext("Started webdriver server."));
         }
+        if re.typ == WebDriverType::Chrome {
+            let caps = DesiredCapabilities::chrome();
+            let driver = WebDriver::new(re.url.as_str(), caps);
+            let driver = block_on(driver);
+            match driver {
+                Ok(_) => {}
+                Err(_) => {
+                    println!("{}", gettext("Can not connect to chrome driver."));
+                    if !p.is_none() {
+                        starter.kill_server(&mut p.unwrap());
+                    }
+                    return false;
+                }
+            }
+            let driver = driver.unwrap();
+            let url = "https://passport.bilibili.com/ajax/miniLogin/minilogin";
+            let re = block_on(driver.get(url));
+            match re {
+                Ok(_) => {}
+                Err(_) => {
+                    let s = gettext("Can not open \"<url>\" in browser.").replace("<url>", url);
+                    println!("{}", s);
+                    starter.quit_driver(driver);
+                    if !p.is_none() {
+                        starter.kill_server(&mut p.unwrap());
+                    }
+                    return false;
+                }
+            }
+            loop {
+                let re = block_on(driver.current_url());
+                match re {
+                    Ok(_) => {}
+                    Err(_) => {
+                        println!("{}", gettext("Can not get current url from web driver."));
+                        starter.quit_driver(driver);
+                        if !p.is_none() {
+                            starter.kill_server(&mut p.unwrap());
+                        }
+                        return false;
+                    }
+                }
+                let url = re.unwrap();
+                if url.starts_with("https://passport.bilibili.com/ajax/miniLogin/redirect") {
+                    break;
+                }
+                sleep(Duration::new(10, 0));
+            }
+            let re = block_on(driver.get_cookies());
+            match re {
+                Ok(_) => {}
+                Err(_) => {
+                    println!("{}", gettext("Can not get cookies from web driver."));
+                    starter.quit_driver(driver);
+                    if !p.is_none() {
+                        starter.kill_server(&mut p.unwrap());
+                    }
+                    return false;
+                }
+            }
+            let cookies = re.unwrap();
+            for cookie in cookies.iter() {
+                let c = Cookie::from_thirtyfour_cookie(cookie.clone());
+                match c {
+                    Some(c) => {
+                        jar.add(c);
+                    }
+                    None => {}
+                }
+            }
+            starter.quit_driver(driver);
+            self.client.as_mut().unwrap().set_cookies_jar(jar.clone());
+            match self.check_logined() {
+                Some(_) => {}
+                None => {}
+            }
+        }
         if !p.is_none() {
             starter.kill_server(&mut p.unwrap());
         }
-        return false;
+        return self.logined();
     }
 
     fn logined(&self) -> bool {

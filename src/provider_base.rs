@@ -23,7 +23,7 @@ pub trait Provider {
     fn init(&mut self, _jar: Option<&CookiesJar>, _opt: OptStore) -> bool {
         false
     }
-    fn login(&self, _jar: &mut CookiesJar) -> bool {
+    fn login(&mut self, _jar: &mut CookiesJar) -> bool {
         false
     }
     fn logined(&self) -> bool {

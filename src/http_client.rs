@@ -97,6 +97,10 @@ impl CookieClient {
         r = r.header("Cookie", cs);
         r
     }
+
+    pub fn set_cookies_jar(&mut self, jar: CookiesJar) {
+        self.jar = jar.clone();
+    }
 }
 
 impl Clone for CookieClient {
