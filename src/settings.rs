@@ -521,12 +521,15 @@ impl SettingStore {
         match r {
             Ok(le) => {
                 if le == 0 {
-                    println!(
-                        "{}\"{}\"",
-                        gettext("Settings file is empty: "),
-                        path_to_str(path)
-                    );
-                    return false;
+                    if !fix_invalid {
+                        println!(
+                            "{}\"{}\"",
+                            gettext("Settings file is empty: "),
+                            path_to_str(path)
+                        );
+                        return false;
+                    }
+                    return true;
                 }
             }
             Err(_) => {
@@ -542,30 +545,39 @@ impl SettingStore {
         match re {
             Ok(_) => {}
             Err(_) => {
-                println!(
-                    "{}\"{}\"",
-                    gettext("Can not parse settings file: "),
-                    path_to_str(path)
-                );
-                return false;
+                if !fix_invalid {
+                    println!(
+                        "{}\"{}\"",
+                        gettext("Can not parse settings file: "),
+                        path_to_str(path)
+                    );
+                    return false;
+                }
+                return true;
             }
         }
         let obj = re.unwrap();
         if obj.is_object() == false {
-            println!(
-                "{}\"{}\"",
-                gettext("Unknown settings file: "),
-                path_to_str(path)
-            );
-            return false;
+            if !fix_invalid {
+                println!(
+                    "{}\"{}\"",
+                    gettext("Unknown settings file: "),
+                    path_to_str(path)
+                );
+                return false;
+            }
+            return true;
         }
         for (key, o) in obj.entries() {
             let mut jar = SettingJar::new();
             if !o.is_object() {
-                let s = gettext("Key \"<key>\" in settings file is not a object.")
-                    .replace("<key>", key);
-                println!("{}", s);
-                return false;
+                if !fix_invalid {
+                    let s = gettext("Key \"<key>\" in settings file is not a object.")
+                        .replace("<key>", key);
+                    println!("{}", s);
+                    return false;
+                }
+                return true;
             }
             for (key2, o) in o.entries() {
                 let re = self.check_valid(key, key2, o.clone());
