@@ -50,6 +50,10 @@ impl Main {
             "bili config add <provider> <key> <value> [options] {}",
             gettext("Add entry to settings file.")
         );
+        println!(
+            "bili config fix [options] {}",
+            gettext("Fix broken settings file.")
+        );
     }
 
     fn print_version(&self) {
@@ -215,6 +219,12 @@ impl Main {
             ) {
                 return 1;
             }
+            if !self.se.save(self.opt.get_option("config")) {
+                return 1;
+            }
+            return 0;
+        }
+        if cmd.typ == ConfigCommand::Fix {
             if !self.se.save(self.opt.get_option("config")) {
                 return 1;
             }

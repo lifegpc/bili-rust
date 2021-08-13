@@ -318,6 +318,18 @@ impl SettingStore {
                 println!("{}", s);
                 return false;
             }
+            let re = re.unwrap();
+            if !re {
+                let t = if map_key == "basic" {
+                    String::from("bili --help-settings")
+                } else {
+                    format!("bili --help-settings {}", map_key)
+                };
+                let s = gettext("Invalid value.\nPlease use \"<cmd>\" to see more information.")
+                    .replace("<cmd>", t.as_str());
+                println!("{}", s);
+                return false;
+            }
             if !self.maps.contains_key(map_key) {
                 self.maps.insert(String::from(map_key), SettingJar::new());
             }

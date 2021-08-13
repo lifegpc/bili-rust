@@ -368,6 +368,9 @@ impl OptStore {
                     self.args[self.ind - 3..self.ind].to_vec(),
                 ));
             }
+            if s == "fix" {
+                return Some(ConfigCommandResult::new(ConfigCommand::Fix, [].to_vec()));
+            }
             self.ind -= 1;
         }
         None
