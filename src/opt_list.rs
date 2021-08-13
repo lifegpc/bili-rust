@@ -9,6 +9,7 @@ pub fn get_config_opt_list() -> Vec<OptDes> {
         OptDes::new("fix", None, gettext("Ignore invalid value when reading file"), false, false, None).unwrap(),
         OptDes::new("force", Some("f"), gettext("Overwrite exists value."), false, false, None).unwrap(),
         OptDes::new("help", Some("h"), gettext("Print help message"), false, false, None).unwrap(),
+        OptDes::new("str", Some("s"), gettext("Treat value as string"), false, false, None).unwrap(),
     ]
 }
 

@@ -54,6 +54,10 @@ impl Main {
             "bili config fix [options] {}",
             gettext("Fix broken settings file.")
         );
+        println!(
+            "bili config get <provider> <key> [options] {}",
+            gettext("Get entry value from settings file.")
+        );
     }
 
     fn print_version(&self) {
@@ -211,10 +215,16 @@ impl Main {
             return 1;
         }
         if cmd.typ == ConfigCommand::Add {
+            let s = if self.opt.has_option("str") {
+                let j = json::JsonValue::String(cmd.list[2].clone());
+                j.dump()
+            } else {
+                cmd.list[2].clone()
+            };
             if !self.se.add_value(
                 cmd.list[0].as_str(),
                 cmd.list[1].as_str(),
-                cmd.list[2].as_str(),
+                s.as_str(),
                 self.opt.has_option("force"),
             ) {
                 return 1;
@@ -229,6 +239,21 @@ impl Main {
                 return 1;
             }
             return 0;
+        }
+        if cmd.typ == ConfigCommand::Get {
+            let re = self
+                .se
+                .get_settings(cmd.list[0].as_str(), cmd.list[1].as_str());
+            match re {
+                Some(obj) => {
+                    println!("{}", obj.dump());
+                    return 0;
+                }
+                None => {
+                    println!("{}", gettext("No value found."));
+                    return 1;
+                }
+            }
         }
         return 0;
     }
