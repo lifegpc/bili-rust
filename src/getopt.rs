@@ -5,6 +5,36 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::default::Default;
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum ConfigCommand {
+    Add,
+    Fix,
+    Get,
+    List,
+    Set,
+    Tree,
+}
+
+pub struct ConfigCommandResult {
+    pub typ: ConfigCommand,
+    pub list: Vec<String>,
+}
+
+impl ConfigCommandResult {
+    pub fn new(typ: ConfigCommand, list: Vec<String>) -> ConfigCommandResult {
+        ConfigCommandResult { typ, list }
+    }
+}
+
+impl Clone for ConfigCommandResult {
+    fn clone(&self) -> ConfigCommandResult {
+        ConfigCommandResult {
+            typ: self.typ.clone(),
+            list: self.list.clone(),
+        }
+    }
+}
+
 pub struct OptDes {
     _name: String,
     _short_name: Option<String>,
@@ -219,10 +249,10 @@ pub struct OptStore {
 }
 
 impl OptStore {
-    pub fn new() -> OptStore {
+    pub fn new(default_des: Vec<OptDes>) -> OptStore {
         OptStore {
             list: [].to_vec(),
-            des: OptDesStore::default(),
+            des: OptDesStore::from(default_des),
             args: std::env::args().collect(),
             ind: 1,
             out_des: HashMap::new(),
@@ -320,6 +350,27 @@ impl OptStore {
             }
         }
         false
+    }
+
+    pub fn parse_config_command(&mut self) -> Option<ConfigCommandResult> {
+        self.ind += 1;
+        if self.ind < self.args.len() {
+            let s = &self.args[self.ind];
+            self.ind += 1;
+            if s.starts_with("-") {
+                self.ind -= 1;
+                return None;
+            }
+            if s == "add" && self.args.len() >= self.ind + 3 {
+                self.ind += 3;
+                return Some(ConfigCommandResult::new(
+                    ConfigCommand::Add,
+                    self.args[self.ind - 3..self.ind].to_vec(),
+                ));
+            }
+            self.ind -= 1;
+        }
+        None
     }
 
     pub fn parse_options(&mut self) -> bool {
@@ -462,7 +513,6 @@ impl OptStore {
 
     pub fn print_help(&self, detail: Option<String>, help_deps: bool) {
         if detail.is_none() || detail.clone().unwrap() == "full" {
-            println!("bili <url> [options]");
             println!("{}", gettext("Basic options:"));
             self.des.print_help();
         }
@@ -501,6 +551,13 @@ impl OptStore {
             }
         }
     }
+
+    pub fn print_providers(&self) {
+        println!("{}", gettext("All available providers:"));
+        for (name, _) in self.out_des.iter() {
+            println!("{}", name);
+        }
+    }
 }
 
 impl Clone for OptStore {
@@ -512,6 +569,19 @@ impl Clone for OptStore {
             ind: self.ind.clone(),
             out_des: self.out_des.clone(),
             des_dep: self.des_dep.clone(),
+        }
+    }
+}
+
+impl Default for OptStore {
+    fn default() -> OptStore {
+        OptStore {
+            list: [].to_vec(),
+            des: OptDesStore::default(),
+            args: std::env::args().collect(),
+            ind: 1,
+            out_des: HashMap::new(),
+            des_dep: HashMap::new(),
         }
     }
 }

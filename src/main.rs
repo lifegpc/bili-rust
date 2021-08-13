@@ -10,6 +10,7 @@ mod webdriver;
 
 use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
+use getopt::ConfigCommand;
 use getopt::OptStore;
 use i18n::gettext;
 use providers::provider_base::Provider;
@@ -26,7 +27,7 @@ impl Main {
         let cookies = CookiesJson::new();
         Main {
             cookies: cookies,
-            opt: OptStore::new(),
+            opt: OptStore::default(),
             se: SettingStore::new(),
         }
     }
@@ -39,9 +40,16 @@ impl Main {
         let re = self.se.get_settings("basic", "cookies");
         if !re.is_none() {
             let re = re.unwrap();
-            return Some(String::from(re.as_str().unwrap()))
+            return Some(String::from(re.as_str().unwrap()));
         }
         None
+    }
+
+    fn print_config_basic_usage(&self) {
+        println!(
+            "bili config add <provider> <key> <value> [options] {}",
+            gettext("Add entry to settings file.")
+        );
     }
 
     fn print_version(&self) {
@@ -60,6 +68,11 @@ impl Main {
             }
             if self.opt.has_option("help") {
                 providers::add_all_opts(&mut self.opt);
+                if self.opt.has_option("list-providers-only") {
+                    self.opt.print_providers();
+                    return 0;
+                }
+                println!("bili <url> [options]");
                 let help = self.opt.get_option("help");
                 self.opt.print_help(help, self.opt.has_option("help-deps"));
                 return 0;
@@ -68,6 +81,10 @@ impl Main {
                 return 0;
             } else if self.opt.has_option("help-settings") {
                 providers::add_all_settings(&mut self.se);
+                if self.opt.has_option("list-providers-only") {
+                    self.se.print_providers();
+                    return 0;
+                }
                 self.se.print_help(
                     self.opt.get_option("help-settings"),
                     self.opt.has_option("help-deps"),
@@ -78,6 +95,9 @@ impl Main {
             return 1;
         }
         let url = url.unwrap();
+        if url == "config" {
+            return self.run_config();
+        }
         let pro = providers::match_provider(url.as_str());
         match pro {
             Some(_) => {}
@@ -159,6 +179,46 @@ impl Main {
                 .replace("<provider>", pro.provider_name());
             println!("{}", s);
             return -1;
+        }
+        return 0;
+    }
+
+    fn run_config(&mut self) -> i32 {
+        self.opt = OptStore::new(opt_list::get_config_opt_list());
+        let cmd = self.opt.parse_config_command();
+        if cmd.is_none() {
+            if !self.opt.parse_options() {
+                return 1;
+            }
+            if self.opt.has_option("help") {
+                self.print_config_basic_usage();
+                self.opt.print_help(None, false);
+                return 0;
+            }
+            self.print_config_basic_usage();
+            return 1;
+        }
+        let cmd = cmd.unwrap();
+        if !self.opt.parse_options() {
+            return 1;
+        }
+        let fix_invalid = self.opt.has_option("fix") || cmd.typ == ConfigCommand::Fix;
+        if !self.se.read(self.opt.get_option("config"), fix_invalid) {
+            return 1;
+        }
+        if cmd.typ == ConfigCommand::Add {
+            if !self.se.add_value(
+                cmd.list[0].as_str(),
+                cmd.list[1].as_str(),
+                cmd.list[2].as_str(),
+                self.opt.has_option("force"),
+            ) {
+                return 1;
+            }
+            if !self.se.save(self.opt.get_option("config")) {
+                return 1;
+            }
+            return 0;
         }
         return 0;
     }

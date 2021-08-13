@@ -21,6 +21,7 @@ pub enum JsonValueType {
     Boolean,
     Object,
     Array,
+    Multiple,
 }
 
 pub type SettingDesCallback = fn(JsonValue) -> bool;
@@ -39,7 +40,11 @@ impl SettingDes {
         typ: JsonValueType,
         callback: Option<SettingDesCallback>,
     ) -> Option<SettingDes> {
-        if (typ == JsonValueType::Array || typ == JsonValueType::Object) && callback == None {
+        if (typ == JsonValueType::Array
+            || typ == JsonValueType::Object
+            || typ == JsonValueType::Multiple)
+            && callback == None
+        {
             return None;
         }
         Some(SettingDes {
@@ -63,6 +68,8 @@ impl SettingDes {
             return "Array";
         } else if self._type == JsonValueType::Boolean {
             return "Boolean";
+        } else if self._type == JsonValueType::Multiple {
+            return gettext("Multiple type");
         } else if self._type == JsonValueType::Number {
             return "Number";
         } else if self._type == JsonValueType::Object {
@@ -81,6 +88,8 @@ impl SettingDes {
             if value.is_boolean() {
                 return true;
             }
+        } else if self._type == JsonValueType::Multiple {
+            return self._fun.unwrap()(value);
         } else if self._type == JsonValueType::Number {
             if value.is_number() {
                 match self._fun {
@@ -275,7 +284,58 @@ impl SettingStore {
     }
 
     pub fn add(&mut self, des_key: &str, list: Vec<SettingDes>) {
-        self.des_map.insert(String::from(des_key), SettingDesStore::new(list));
+        self.des_map
+            .insert(String::from(des_key), SettingDesStore::new(list));
+    }
+
+    pub fn add_value(&mut self, map_key: &str, key: &str, value: &str, force: bool) -> bool {
+        let obj = json::parse(value);
+        match obj {
+            Ok(_) => {}
+            Err(_) => {
+                let s =
+                    gettext("\"<value>\" is not a vaild JSON object.").replace("<value>", value);
+                println!("{}", s);
+                return false;
+            }
+        }
+        let obj = obj.unwrap();
+        if map_key == "basic" || self.des_map.contains_key(map_key) {
+            let des = if map_key == "basic" {
+                &self.basic
+            } else {
+                self.des_map.get("map_key").unwrap()
+            };
+            let re = des.check_valid(key, obj.clone());
+            if re.is_none() {
+                let t = if map_key == "basic" {
+                    String::from("bili --help-settings")
+                } else {
+                    format!("bili --help-settings {}", map_key)
+                };
+                let s = gettext("Unknown key.\nPlease use \"<command>\" to see available key.")
+                    .replace("<command>", t.as_str());
+                println!("{}", s);
+                return false;
+            }
+            if !self.maps.contains_key(map_key) {
+                self.maps.insert(String::from(map_key), SettingJar::new());
+            }
+            let jar = self.maps.get_mut(map_key);
+            let jar = jar.unwrap();
+            if jar.settings.contains_key(key) && !force {
+                println!(
+                    "{}",
+                    gettext("Already have this key in settings, please use \"<command>\".")
+                        .replace("<command>", "bili config set <provider> <key> <value>")
+                );
+                return false;
+            }
+            jar.add(key, obj.clone());
+            return true;
+        }
+        println!("{}", gettext("Unknown provider name.\nPlease use \"<command>\" to see all available name.\nNOTE: you can always use \"basic\".").replace("<command>", "bili --help-settings --list-providers-only"));
+        return false;
     }
 
     pub fn add_with_dependence(
@@ -384,6 +444,13 @@ impl SettingStore {
                     }
                 }
             }
+        }
+    }
+
+    pub fn print_providers(&self) {
+        println!("{}", gettext("All available providers:"));
+        for (name, _) in self.des_map.iter() {
+            println!("{}", name);
         }
     }
 
@@ -607,7 +674,7 @@ impl SettingStore {
 
     pub fn to_str(&self) -> Option<String> {
         let obj = self.to_json();
-        if !obj.is_none() {
+        if obj.is_none() {
             return None;
         }
         let obj = obj.unwrap();
