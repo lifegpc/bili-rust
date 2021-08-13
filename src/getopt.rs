@@ -10,9 +10,7 @@ pub enum ConfigCommand {
     Add,
     Fix,
     Get,
-    List,
     Set,
-    Tree,
 }
 
 pub struct ConfigCommandResult {
@@ -376,6 +374,13 @@ impl OptStore {
                 return Some(ConfigCommandResult::new(
                     ConfigCommand::Get,
                     self.args[self.ind - 2..self.ind].to_vec(),
+                ));
+            }
+            if s == "set" && self.args.len() >= self.ind + 3 {
+                self.ind += 3;
+                return Some(ConfigCommandResult::new(
+                    ConfigCommand::Set,
+                    self.args[self.ind - 3..self.ind].to_vec(),
                 ));
             }
             self.ind -= 1;

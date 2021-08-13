@@ -58,6 +58,10 @@ impl Main {
             "bili config get <provider> <key> [options] {}",
             gettext("Get entry value from settings file.")
         );
+        println!(
+            "bili config set <provider> <key> <value> [Options] {}",
+            gettext("Set value for an entry.")
+        );
     }
 
     fn print_version(&self) {
@@ -246,7 +250,7 @@ impl Main {
                 .get_settings(cmd.list[0].as_str(), cmd.list[1].as_str());
             match re {
                 Some(obj) => {
-                    println!("{}", obj.dump());
+                    println!("{}", obj.pretty(2));
                     return 0;
                 }
                 None => {
@@ -254,6 +258,26 @@ impl Main {
                     return 1;
                 }
             }
+        }
+        if cmd.typ == ConfigCommand::Set {
+            let s = if self.opt.has_option("str") {
+                let j = json::JsonValue::String(cmd.list[2].clone());
+                j.dump()
+            } else {
+                cmd.list[2].clone()
+            };
+            if !self.se.set_value(
+                cmd.list[0].as_str(),
+                cmd.list[1].as_str(),
+                s.as_str(),
+                self.opt.has_option("force"),
+            ) {
+                return 1;
+            }
+            if !self.se.save(self.opt.get_option("config")) {
+                return 1;
+            }
+            return 0;
         }
         return 0;
     }

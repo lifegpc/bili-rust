@@ -677,6 +677,78 @@ impl SettingStore {
         return true;
     }
 
+    pub fn set_value(&mut self, map_key: &str, key: &str, value: &str, force: bool) -> bool {
+        let obj = json::parse(value);
+        match obj {
+            Ok(_) => {}
+            Err(_) => {
+                let s =
+                    gettext("\"<value>\" is not a vaild JSON object.").replace("<value>", value);
+                println!("{}", s);
+                return false;
+            }
+        }
+        let obj = obj.unwrap();
+        if map_key == "basic" || self.des_map.contains_key(map_key) {
+            let des = if map_key == "basic" {
+                &self.basic
+            } else {
+                self.des_map.get("map_key").unwrap()
+            };
+            let re = des.check_valid(key, obj.clone());
+            if re.is_none() {
+                let t = if map_key == "basic" {
+                    String::from("bili --help-settings")
+                } else {
+                    format!("bili --help-settings {}", map_key)
+                };
+                let s = gettext("Unknown key.\nPlease use \"<command>\" to see available key.")
+                    .replace("<command>", t.as_str());
+                println!("{}", s);
+                return false;
+            }
+            let re = re.unwrap();
+            if !re {
+                let t = if map_key == "basic" {
+                    String::from("bili --help-settings")
+                } else {
+                    format!("bili --help-settings {}", map_key)
+                };
+                let s = gettext("Invalid value.\nPlease use \"<cmd>\" to see more information.")
+                    .replace("<cmd>", t.as_str());
+                println!("{}", s);
+                return false;
+            }
+            if !self.maps.contains_key(map_key) {
+                if force {
+                    self.maps.insert(String::from(map_key), SettingJar::new());
+                } else {
+                    println!(
+                        "{}",
+                        gettext("Current settings file don't have this setting, please use <cmd>")
+                            .replace("<cmd>", "bili config add <provider> <key> <value>")
+                    );
+                    return false;
+                }
+            }
+            let jar = self.maps.get_mut(map_key).unwrap();
+            if !jar.settings.contains_key(key) {
+                if !force {
+                    println!(
+                        "{}",
+                        gettext("Current settings file don't have this setting, please use <cmd>")
+                            .replace("<cmd>", "bili config add <provider> <key> <value>")
+                    );
+                    return false;
+                }
+            }
+            jar.add(key, obj);
+            return true;
+        }
+        println!("{}", gettext("Unknown provider name.\nPlease use \"<command>\" to see all available name.\nNOTE: you can always use \"basic\".").replace("<command>", "bili --help-settings --list-providers-only"));
+        return false;
+    }
+
     pub fn to_json(&self) -> Option<JsonValue> {
         let mut v = JsonValue::new_object();
         for (key, val) in self.maps.iter() {
