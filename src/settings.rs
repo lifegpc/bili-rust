@@ -304,7 +304,7 @@ impl SettingStore {
             let des = if map_key == "basic" {
                 &self.basic
             } else {
-                self.des_map.get("map_key").unwrap()
+                self.des_map.get(map_key).unwrap()
             };
             let re = des.check_valid(key, obj.clone());
             if re.is_none() {

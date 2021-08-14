@@ -5,13 +5,11 @@ extern crate thirtyfour;
 
 use crate::cookies_json::Cookie;
 use crate::cookies_json::CookiesJar;
-use crate::getopt::OptDes;
 use crate::getopt::OptStore;
 use crate::http_client::CookieClient;
 use crate::i18n::gettext;
 use crate::opt_list::get_webdriver_options;
 use crate::opt_list::get_webdriver_settings;
-use crate::providers::bilibili::opt_list::get_bili_base_options;
 use crate::providers::provider_base::Provider;
 use crate::settings::SettingStore;
 use crate::webdriver::WebDriverStarter;
@@ -75,7 +73,6 @@ impl Provider for BiliBaseProvider {
 
     fn add_custom_options(&self, opt: &mut OptStore) {
         opt.add("WebDriver", get_webdriver_options());
-        opt.add(self.provider_name(), BiliBaseProvider::get_custom_options());
     }
 
     fn add_custom_settings(&self, store: &mut SettingStore) {
@@ -147,20 +144,8 @@ impl Provider for BiliBaseProvider {
         return None;
     }
 
-    fn get_custom_options() -> Vec<OptDes> {
-        get_bili_base_options()
-    }
-
     fn get_default_cookie_jar_name(&self) -> Option<&str> {
         Some("bili")
-    }
-
-    fn has_custom_options(&self) -> bool {
-        true
-    }
-
-    fn has_custom_settings(&self) -> bool {
-        true
     }
 
     fn login(&mut self, jar: &mut CookiesJar) -> bool {
@@ -285,10 +270,6 @@ impl Provider for BiliBaseProvider {
         self.opt = Some(opt);
         self.se = Some(settings);
         self.init_client(jar)
-    }
-
-    fn match_url(_url: &str) -> bool {
-        return true;
     }
 
     fn provider_name(&self) -> &'static str {

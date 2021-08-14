@@ -15,14 +15,22 @@ use std::io::Write;
 use std::path::Path;
 use thirtyfour::common::cookie::Cookie as TFCookie;
 
+/// Cookies structure
 pub struct Cookie {
+    /// Cookie's name
     _name: String,
+    /// Cookie's value
     _value: String,
+    /// Cookie's domain
     _domain: Option<String>,
+    /// Cookie's path
     _path: Option<String>,
 }
 
 impl Cookie {
+    /// Create a new cookie
+    /// * `name` - Cookie's name
+    /// * `value` - Cookie's value
     pub fn new(name: &str, value: &str) -> Cookie {
         Cookie {
             _name: String::from(name),
@@ -76,6 +84,10 @@ impl Cookie {
         }
     }
 
+    /// Convert from thirtyfour's cookie structure.
+    /// * `c` - Origin cookie structure
+    /// # Notes
+    /// If origin cookie's value is not string or number, convertion will failed and return false.
     pub fn from_thirtyfour_cookie(c: TFCookie) -> Option<Cookie> {
         let name = c.name();
         let value = c.value();
@@ -159,6 +171,7 @@ impl Clone for Cookie {
     }
 }
 
+/// Cookies Jar
 pub struct CookiesJar {
     pub cookies: HashMap<String, Cookie>,
 }
@@ -170,6 +183,10 @@ impl CookiesJar {
         }
     }
 
+    /// Add a new cookie to jar
+    /// * `c` - Cookie
+    /// # Notes
+    /// The old cookie which have same name will be overwrite.
     pub fn add(&mut self, c: Cookie) {
         let n = c.name();
         self.cookies.insert(String::from(n), c);

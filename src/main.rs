@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod cookies_json;
 mod getopt;
 mod http_client;
@@ -215,6 +218,7 @@ impl Main {
         if !self.opt.parse_options() {
             return 1;
         }
+        providers::add_all_settings(&mut self.se);
         let fix_invalid = self.opt.has_option("fix") || cmd.typ == ConfigCommand::Fix;
         if !self.se.read(self.opt.get_option("config"), fix_invalid) {
             return 1;

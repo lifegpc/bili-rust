@@ -151,6 +151,8 @@ impl I18n {
 
 static mut I18N: Option<I18n> = None;
 
+/// Get translation of text
+/// * `s` - Origin text
 pub fn gettext(s: &str) -> &str {
     unsafe {
         if I18N.is_none() {
