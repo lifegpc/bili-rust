@@ -149,27 +149,19 @@ impl I18n {
     }
 }
 
-static mut I18N: Option<I18n> = None;
+lazy_static! {
+    static ref I18NT: I18n = I18n::new();
+}
 
 /// Get translation of text
 /// * `s` - Origin text
 pub fn gettext(s: &str) -> &str {
-    unsafe {
-        if I18N.is_none() {
-            I18N = Some(I18n::new());
+    match &I18NT.catalog {
+        Some(c) => {
+            return c.gettext(s);
         }
-        match &I18N {
-            Some(i) => match &i.catalog {
-                Some(c) => {
-                    return c.gettext(s);
-                }
-                None => {
-                    return s;
-                }
-            },
-            None => {
-                return s;
-            }
+        None => {
+            return s;
         }
     }
 }
