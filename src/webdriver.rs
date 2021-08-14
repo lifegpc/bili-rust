@@ -84,6 +84,15 @@ impl WebDriverStarter {
             }
             return None;
         }
+        let url = self.get_server_url_from_opt(WebDriverType::Chrome);
+        if !url.is_none() {
+            let url = url.unwrap();
+            return Some(WebDriverUrlResult::new(
+                url.as_str(),
+                WebDriverType::Chrome,
+                None,
+            ));
+        }
         let li = self.get_executable(WebDriverType::Chrome);
         for v in li.iter() {
             if self.test_executable(v.clone()) {

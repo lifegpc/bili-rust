@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::default::Default;
 
+/// The config command type parsed from command line
 #[derive(Clone, Copy, PartialEq)]
 pub enum ConfigCommand {
     Add,
@@ -13,8 +14,11 @@ pub enum ConfigCommand {
     Set,
 }
 
+/// Config command type and arguments
 pub struct ConfigCommandResult {
+    /// config command type
     pub typ: ConfigCommand,
+    /// arguments of command
     pub list: Vec<String>,
 }
 
@@ -33,6 +37,7 @@ impl Clone for ConfigCommandResult {
     }
 }
 
+/// The description struct of an option
 pub struct OptDes {
     _name: String,
     _short_name: Option<String>,
@@ -43,6 +48,20 @@ pub struct OptDes {
 }
 
 impl OptDes {
+    /// Create a new description sturct of an option
+    /// * `name` - Name
+    /// * `short_name` - Short name (one letter)
+    /// * `description` - Description
+    /// * `has_value` - Can this option have an argument
+    /// * `need_value` - Should this option must have an argument
+    /// * `value_display_name` - Display name in print help message (This argument should be None when `has_value` is false, and must have a value when `has_value` is true)
+    /// 
+    /// # Examples
+    /// ```
+    /// let opt = OptDes::new("help", Some("h"), "Print help message", true, false, Some("type"));
+    /// ```
+    /// 
+    /// When printing help message, it will output something like this: `-h  --help [type] Print help message`
     pub fn new(
         name: &str,
         short_name: Option<&str>,
@@ -73,10 +92,12 @@ impl OptDes {
         })
     }
 
+    /// Return the name of the option
     pub fn name(&self) -> &str {
         self._name.as_str()
     }
 
+    /// Return the short name of the option
     pub fn short_name(&self) -> Option<String> {
         match &self._short_name {
             Some(s) => Some(s.clone()),
@@ -84,18 +105,22 @@ impl OptDes {
         }
     }
 
+    /// Return the description of the option
     pub fn description(&self) -> &str {
         self._description.as_str()
     }
 
+    /// Return whether to this option can have an argument
     pub fn has_value(&self) -> bool {
         self._has_value
     }
 
+    /// Return whether to this option must have an argument
     pub fn need_value(&self) -> bool {
         self._need_value
     }
 
+    /// the display name in print help message
     pub fn value_display_name(&self) -> Option<String> {
         match &self._value_display_name {
             Some(s) => Some(s.clone()),
@@ -117,6 +142,7 @@ impl Clone for OptDes {
     }
 }
 
+/// Option struct, only used in getopt. Please use function in [`OptStore`](struct.OptStore.html) to access user's command line options.
 pub struct Opt {
     _name: String,
     _value: Option<String>,
@@ -151,11 +177,14 @@ impl Clone for Opt {
     }
 }
 
+/// A list of [`OptDes`](struct.OptDes.html)
 pub struct OptDesStore {
     list: Vec<OptDes>,
 }
 
 impl OptDesStore {
+    /// Return a description struct of option by description name
+    /// * `key` - Name
     pub fn get(&self, key: &str) -> Option<OptDes> {
         for i in self.list.iter() {
             if i.name() == key {
@@ -165,6 +194,8 @@ impl OptDesStore {
         None
     }
 
+    /// Return a description struct of option by description short name
+    /// * `key` - Short name
     pub fn get_by_short_name(&self, key: &str) -> Option<OptDes> {
         for i in self.list.iter() {
             match i.short_name() {
@@ -179,10 +210,12 @@ impl OptDesStore {
         None
     }
 
+    /// Return the list len
     pub fn len(&self) -> usize {
         self.list.len()
     }
 
+    /// Print help message by using the information in the list
     pub fn print_help(&self) {
         let mut s = String::from("");
         for i in self.list.iter() {
@@ -224,6 +257,7 @@ impl Clone for OptDesStore {
 }
 
 impl Default for OptDesStore {
+    /// Return a list of basic command options' description struct of main program.
     fn default() -> OptDesStore {
         OptDesStore {
             list: get_opt_list(),
@@ -232,21 +266,35 @@ impl Default for OptDesStore {
 }
 
 impl From<Vec<OptDes>> for OptDesStore {
+    /// Generate from a `Vec`
     fn from(list: Vec<OptDes>) -> OptDesStore {
         OptDesStore { list: list.clone() }
     }
 }
 
+/// A structure used to parse command line
 pub struct OptStore {
+    /// The list of option already parsed
     list: Vec<Opt>,
+    /// The list of basic options
     des: OptDesStore,
+    /// Command line arguments
     args: Vec<String>,
+    /// The next argument's index should be parsed
     ind: usize,
+    /// Other providers' options list.
     out_des: HashMap<String, OptDesStore>,
+    /// The dependent list for providers. `basic` is always included and don't need on the list.
     des_dep: HashMap<String, Vec<String>>,
 }
 
 impl OptStore {
+    /// Create a new one with custom basic options list
+    /// * `default_des` - The list of basic options
+    /// # Examples
+    /// ```
+    /// let mut opt = OptStore::new(vec![OptDes::new("some", Some("s"), "Description", false, false, None).unwrap(),]);
+    /// ```
     pub fn new(default_des: Vec<OptDes>) -> OptStore {
         OptStore {
             list: [].to_vec(),
@@ -258,11 +306,34 @@ impl OptStore {
         }
     }
 
+    /// Add a provider's options
+    /// * `key` - Provider's name
+    /// * `list` - Provider's options
+    /// # Examples
+    /// ```
+    /// let mut opt = OptStore::default();
+    /// opt.add("Provider name", vec![OptDes::new("some", Some("s"), "Description", false, false, None).unwrap(),]);
+    /// ```
+    /// # Notes
+    /// If this provider depend on another provider, you need use [`add_with_dependence`](#method.add_with_dependence) in function [`add_all_opts`](../providers/fn.add_all_opts.html).
     pub fn add(&mut self, key: &str, list: Vec<OptDes>) {
         let des = OptDesStore::from(list);
         self.out_des.insert(String::from(key), des);
     }
 
+    /// Add a provider's options with its dependencies
+    /// * `key` - Provider's name
+    /// * `list` - Provider's options
+    /// * `deps` - Provider's dependencies
+    /// # Examples
+    /// ```
+    /// let mut opt = OptStore::default();
+    /// opt.add("Provider1", vec![OptDes::new("some", Some("s"), "Description", false, false, None).unwrap(),]);
+    /// opt.add_with_dependence("Provider2", vec![OptDes::new("some2", None, "Description", false, false, None).unwrap(),], vec!["Provider1"]);
+    /// ```
+    /// # Notes
+    /// 1. The name in dependencies must be added before.
+    /// 2. Dependencies information now only used on help message. You just need use this function in function [`add_all_opts`](../providers/fn.add_all_opts.html). You can use [`add`](#method.add) in any other location.
     pub fn add_with_dependence(
         &mut self,
         key: &str,
@@ -282,6 +353,8 @@ impl OptStore {
         Some(true)
     }
 
+    /// Get a description struct by using option's name
+    /// * `key` - Option's name
     pub fn get_des(&self, key: &str) -> Option<OptDes> {
         let re = self.des.get(key);
         if !re.is_none() {
@@ -296,6 +369,8 @@ impl OptStore {
         None
     }
 
+    /// Get dependencies list of a provider
+    /// * `key` - Provider's name
     pub fn get_des_dependence(&self, key: &str) -> Option<Vec<String>> {
         if self.des_dep.contains_key(key) {
             let mut list: Vec<String> = Vec::new();
@@ -316,7 +391,17 @@ impl OptStore {
             }
         }
     }
-    /// If option not found or option don't have any value, return None
+    /// Get option's argument
+    /// * `key` - Option's name
+    /// # Examples
+    /// ```
+    /// let mut opt = OptStore::default();
+    /// if opt.parse_options() {
+    ///     let cookies = opt.get_option("cookies");
+    /// }
+    /// ```
+    /// # Notes
+    /// If option not found or option don't have any argument, return None
     pub fn get_option(&self, key: &str) -> Option<String> {
         let mut last = None;
         for i in self.list.iter() {
@@ -327,6 +412,8 @@ impl OptStore {
         last
     }
 
+    /// Get a description struct by using option's short name
+    /// * `key` - Option's short name
     pub fn get_des_by_short_name(&self, key: &str) -> Option<OptDes> {
         let re = self.des.get_by_short_name(key);
         if !re.is_none() {
@@ -341,6 +428,17 @@ impl OptStore {
         None
     }
 
+    /// Return whether have this option
+    /// * `key` - Option's name
+    /// # Examples
+    /// ```
+    /// let mut opt = OptStore::default();
+    /// if opt.parse_options() {
+    ///     if opt.has_option("help") {
+    ///         // Print help message
+    ///     }
+    /// }
+    /// ```
     pub fn has_option(&self, key: &str) -> bool {
         for i in self.list.iter() {
             if i.name() == key {
@@ -350,6 +448,7 @@ impl OptStore {
         false
     }
 
+    /// Parse config command, only used in `bili config` command.
     pub fn parse_config_command(&mut self) -> Option<ConfigCommandResult> {
         self.ind += 1;
         if self.ind < self.args.len() {
@@ -388,6 +487,17 @@ impl OptStore {
         None
     }
 
+    /// Parse options, if any error occured, will return false
+    /// # Examples
+    /// ```
+    /// let opt = OptStore::default();
+    /// if opt.parse_options() {
+    ///     // Do something
+    /// }
+    /// ```
+    /// # Notes
+    /// 1. This function will clear [`self.list`](#structfield.list), so [`get_option`](#method.get_option) and [`has_option`](#method.has_option) will not return previous result.
+    /// 2. If found a non-option argument, this function will stop parse and return true.
     pub fn parse_options(&mut self) -> bool {
         self.list.clear();
         while self.ind < self.args.len() {
@@ -513,6 +623,7 @@ impl OptStore {
         return true;
     }
 
+    /// Parse url from argument
     pub fn parse_url(&mut self) -> Option<String> {
         while self.ind < self.args.len() {
             let s = &self.args[self.ind];
@@ -526,6 +637,9 @@ impl OptStore {
         return None;
     }
 
+    /// Print help message
+    /// * `detail` - The provider name that want to print help message
+    /// * `help_deps` - Whether to print provider's dependencies' help message. If `detail` is `None` or `full`, this argument no any effects.
     pub fn print_help(&self, detail: Option<String>, help_deps: bool) {
         if detail.is_none() || detail.clone().unwrap() == "full" {
             println!("{}", gettext("Basic options:"));
@@ -567,6 +681,7 @@ impl OptStore {
         }
     }
 
+    /// Print all prviders' name (key) in [`self.out_des`](#structfield.out_des)
     pub fn print_providers(&self) {
         println!("{}", gettext("All available providers:"));
         for (name, _) in self.out_des.iter() {
@@ -589,6 +704,8 @@ impl Clone for OptStore {
 }
 
 impl Default for OptStore {
+    /// Create a new one with default basic options.
+    /// The options list can be found in function [`get_opt_list`](../opt_list/fn.get_opt_list.html)
     fn default() -> OptStore {
         OptStore {
             list: [].to_vec(),

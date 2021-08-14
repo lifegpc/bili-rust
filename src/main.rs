@@ -2,6 +2,7 @@ mod cookies_json;
 mod getopt;
 mod http_client;
 mod i18n;
+mod metadata;
 mod opt_list;
 mod path;
 mod providers;
