@@ -103,13 +103,7 @@ impl BiliNormalVideoProvider {
                     let mut p: Option<usize> = None;
                     if !part.is_none() {
                         let part = part.unwrap().as_str();
-                        let re = part.parse::<usize>();
-                        match re {
-                            Ok(re) => {
-                                p = Some(re);
-                            }
-                            Err(_) => {}
-                        }
+                        p = util::atou(part);
                     }
                     if av.is_none() {
                         let bv = bv.unwrap();

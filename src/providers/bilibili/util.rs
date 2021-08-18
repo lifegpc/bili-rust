@@ -47,6 +47,18 @@ pub fn bv_to_av(bv: String) -> usize {
     (r - *ADD) ^ *XOR
 }
 
+pub fn atou(s: &str) -> Option<usize> {
+    let r = s.parse::<usize>();
+    match r {
+        Ok(re) => {
+            Some(re)
+        }
+        Err(_) => {
+            None
+        }
+    }
+}
+
 #[test]
 fn test_av_to_bv() {
     assert_eq!("BV17x411w7KC", av_to_bv(170001));
@@ -59,4 +71,10 @@ fn test_bv_to_av() {
     assert_eq!(9, bv_to_av(String::from("BV1xx411c7mC")));
     assert_eq!(170001, bv_to_av(String::from("BV7x411w7KC")));
     assert_eq!(9, bv_to_av(String::from("BVxx411c7mC")));
+}
+
+#[test]
+fn test_atou() {
+    assert_eq!(Some(1345 as usize), atou("1345"));
+    assert_eq!(None, atou("-3"));
 }
