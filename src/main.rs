@@ -196,6 +196,11 @@ impl Main {
             println!("{}", s);
             return -1;
         }
+        let e = pro.extract(url.as_str());
+        if e.is_none() {
+            println!("{}", gettext("Can not extract info."));
+            return 1;
+        }
         return 0;
     }
 

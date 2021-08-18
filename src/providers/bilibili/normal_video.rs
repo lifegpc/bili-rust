@@ -1,16 +1,20 @@
+extern crate futures;
 extern crate regex;
 
 use crate::cookies_json::CookiesJar;
 use crate::getopt::OptDes;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
+use crate::metadata::ExtractInfo;
 use crate::providers::bilibili::base::BiliBaseProvider;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_options;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_settings;
+use crate::providers::bilibili::parser::HTMLDataInJS;
 use crate::providers::bilibili::util;
 use crate::providers::provider_base::Provider;
 use crate::settings::SettingDes;
 use crate::settings::SettingStore;
+use futures::executor::block_on;
 use regex::Regex;
 use std::clone::Clone;
 
@@ -67,6 +71,40 @@ pub struct BiliNormalVideoProvider {
 }
 
 impl BiliNormalVideoProvider {
+    fn basic_info(&self, url: UrlInfo) -> bool {
+        const PLAYERINFO: &str = "window.__playinfo__";
+        const INITIAL: &str = "window.__INITIAL_STATE__";
+        let link = format!("https://www.bilibili.com/video/{}", url.bv);
+        let r = self.base.client.as_ref().unwrap().get(link);
+        match r {
+            Some(_) => {}
+            None => return false,
+        }
+        let r = r.unwrap();
+        if r.status().as_u16() >= 400 {
+            println!(
+                "{}\"{}\"",
+                gettext("Error when geting the webpage: "),
+                r.status().as_str()
+            );
+            return false;
+        }
+        let t = block_on(r.text_with_charset("UTF-8"));
+        match t {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}\"{}\"", gettext("Error when geting the webpage: "), e);
+                return false;
+            }
+        }
+        let t = t.unwrap();
+        let mut js = HTMLDataInJS::new();
+        if !js.parse(t.as_str(), vec![PLAYERINFO, INITIAL]) {
+            return false;
+        }
+        true
+    }
+
     fn parse_url(url: &str) -> Option<UrlInfo> {
         let caps = RE.captures(url);
         match caps {
@@ -152,6 +190,14 @@ impl Provider for BiliNormalVideoProvider {
 
     fn check_logined(&mut self) -> Option<bool> {
         self.base.check_logined()
+    }
+
+    fn extract(&mut self, url: &str) -> Option<ExtractInfo> {
+        let u = Self::parse_url(url).unwrap();
+        if !self.basic_info(u) {
+            return None;
+        }
+        None
     }
 
     fn get_custom_options() -> Vec<OptDes> {

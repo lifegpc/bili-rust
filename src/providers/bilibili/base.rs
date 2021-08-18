@@ -26,7 +26,7 @@ use thirtyfour::prelude::WebDriver;
 use thirtyfour::prelude::WebDriverCommands;
 
 pub struct BiliBaseProvider {
-    client: Option<CookieClient>,
+    pub client: Option<CookieClient>,
     user_info: Option<JsonValue>,
     opt: Option<OptStore>,
     se: Option<SettingStore>,

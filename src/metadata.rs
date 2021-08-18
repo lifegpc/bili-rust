@@ -88,3 +88,34 @@ impl Default for VideoMetadata {
         }
     }
 }
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum InfoType {
+    Video,
+}
+
+pub struct VideoInfo {
+    pub meta: VideoMetadata,
+}
+
+impl Clone for VideoInfo {
+    fn clone(&self) -> VideoInfo {
+        VideoInfo {
+            meta: self.meta.clone(),
+        }
+    }
+}
+
+pub struct ExtractInfo {
+    pub typ: InfoType,
+    pub video: Option<VideoInfo>,
+}
+
+impl Clone for ExtractInfo {
+    fn clone(&self) -> ExtractInfo {
+        ExtractInfo {
+            typ: self.typ.clone(),
+            video: self.video.clone(),
+        }
+    }
+}

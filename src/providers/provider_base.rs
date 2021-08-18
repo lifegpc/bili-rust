@@ -1,6 +1,7 @@
 use crate::cookies_json::CookiesJar;
 use crate::getopt::OptDes;
 use crate::getopt::OptStore;
+use crate::metadata::ExtractInfo;
 use crate::settings::SettingDes;
 use crate::settings::SettingStore;
 
@@ -13,6 +14,10 @@ pub trait Provider {
     }
     fn check_logined(&mut self) -> Option<bool> {
         Some(false)
+    }
+    /// Extract infomation from provider
+    fn extract(&mut self, _url: &str) -> Option<ExtractInfo> {
+        None
     }
     fn get_custom_options() -> Vec<OptDes> {
         [].to_vec()
