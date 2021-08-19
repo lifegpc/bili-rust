@@ -5,18 +5,22 @@ use crate::cookies_json::CookiesJar;
 use crate::getopt::OptDes;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
+use crate::metadata::VideoMetadata;
 use crate::metadata::ExtractInfo;
 use crate::providers::bilibili::base::BiliBaseProvider;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_options;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_settings;
 use crate::providers::bilibili::parser::HTMLDataInJS;
+use crate::providers::bilibili::part_info::PartInfoList;
 use crate::providers::bilibili::util;
 use crate::providers::provider_base::Provider;
 use crate::settings::SettingDes;
 use crate::settings::SettingStore;
 use futures::executor::block_on;
+use json::JsonValue;
 use regex::Regex;
 use std::clone::Clone;
+use std::convert::TryFrom;
 
 lazy_static! {
     static ref RE: Regex = Regex::new(r"(?i)^(av(?P<av>\d+)|(?P<bv>bv[a-z0-9]{9,10}))$").unwrap();
@@ -68,10 +72,18 @@ impl Clone for UrlInfo {
 
 pub struct BiliNormalVideoProvider {
     base: BiliBaseProvider,
+    /// Basic information extract from HTML (`window.__INITIAL_STATE__`)
+    videoinfo: Option<JsonValue>,
+    /// Player url extract from HTML (`window.__playinfo__`)
+    playinfo: Option<JsonValue>,
+    partinfo: Option<PartInfoList>,
 }
 
 impl BiliNormalVideoProvider {
-    fn basic_info(&self, url: UrlInfo) -> bool {
+    /// Extract basic information
+    /// * `url` - Input url
+    /// return true if `videoinfo` is ok
+    fn basic_info(&mut self, url: UrlInfo) -> bool {
         const PLAYERINFO: &str = "window.__playinfo__";
         const INITIAL: &str = "window.__INITIAL_STATE__";
         let link = format!("https://www.bilibili.com/video/{}", url.bv);
@@ -102,7 +114,50 @@ impl BiliNormalVideoProvider {
         if !js.parse(t.as_str(), vec![PLAYERINFO, INITIAL]) {
             return false;
         }
+        let data = js.maps.get(INITIAL);
+        if data.is_none() {
+            return false;
+        }
+        let data = data.unwrap();
+        let dat = &data[..data.len() - 122];
+        let data = json::parse(dat);
+        match data {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}\"{}\"", gettext("Can not parse as JSON: "), e);
+                return false;
+            }
+        }
+        self.videoinfo = Some(data.unwrap());
+        let pinfo = js.maps.get(PLAYERINFO);
+        if !pinfo.is_none() {
+            let pinfo = pinfo.unwrap();
+            let pinfo = json::parse(pinfo.as_str());
+            match pinfo {
+                Ok(pinfo) => {
+                    self.playinfo = Some(pinfo);
+                }
+                Err(e) => {
+                    println!("{}\"{}\"", gettext("Can not parse as JSON: "), e);
+                }
+            }
+        }
+        let pages = &self.videoinfo.as_ref().unwrap()["videoData"]["pages"];
+        let pl = PartInfoList::try_from(pages);
+        if pl.is_err() {
+            // TODO: Try get list from API
+            return false;
+        }
+        self.partinfo = Some(pl.unwrap());
         true
+    }
+
+    fn gen_video_metadata(&self) -> Option<VideoMetadata> {
+        let md = VideoMetadata::default();
+        if self.videoinfo.is_none() {
+            return None;
+        }
+        Some(md)
     }
 
     fn parse_url(url: &str) -> Option<UrlInfo> {
@@ -171,6 +226,9 @@ impl Provider for BiliNormalVideoProvider {
     fn new() -> BiliNormalVideoProvider {
         BiliNormalVideoProvider {
             base: BiliBaseProvider::new(),
+            videoinfo: None,
+            playinfo: None,
+            partinfo: None,
         }
     }
 
@@ -195,6 +253,10 @@ impl Provider for BiliNormalVideoProvider {
     fn extract(&mut self, url: &str) -> Option<ExtractInfo> {
         let u = Self::parse_url(url).unwrap();
         if !self.basic_info(u) {
+            return None;
+        }
+        let re = self.gen_video_metadata();
+        if re.is_none() {
             return None;
         }
         None
