@@ -5,6 +5,7 @@ use json::JsonValue;
 use std::clone::Clone;
 use std::convert::From;
 use std::convert::TryFrom;
+use std::ops::Index;
 
 /// The information of a part
 #[derive(Debug, PartialEq)]
@@ -44,6 +45,18 @@ impl Clone for PartInfo {
 #[derive(Debug, PartialEq)]
 pub struct PartInfoList {
     pub list: Vec<PartInfo>,
+}
+
+impl PartInfoList {
+    /// Return fist cid
+    pub fn first_cid(&self) -> Option<usize> {
+        let le = self.list.len();
+        if le < 1 {
+            None
+        } else {
+            Some(self.list[0].cid)
+        }
+    }
 }
 
 impl Clone for PartInfoList {
@@ -140,6 +153,23 @@ impl TryFrom<&JsonValue> for PartInfoList {
             return Err("Empty list.");
         }
         Ok(Self::from(list))
+    }
+}
+
+impl Index<usize> for PartInfoList {
+    type Output = PartInfo;
+
+    /// Return partinfo
+    /// * ind - The part index
+    /// # Panics
+    /// Panic if the index is out of bounds.
+    fn index(&self, ind: usize) -> &Self::Output {
+        let le = self.list.len();
+        if ind >= le {
+            panic!("Only {} items in list, get index {}", le, ind);
+        } else {
+            return &self.list[ind];
+        }
     }
 }
 

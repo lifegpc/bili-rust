@@ -5,8 +5,8 @@ use crate::cookies_json::CookiesJar;
 use crate::getopt::OptDes;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
-use crate::metadata::VideoMetadata;
 use crate::metadata::ExtractInfo;
+use crate::metadata::VideoMetadata;
 use crate::providers::bilibili::base::BiliBaseProvider;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_options;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_settings;
@@ -20,6 +20,7 @@ use futures::executor::block_on;
 use json::JsonValue;
 use regex::Regex;
 use std::clone::Clone;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 lazy_static! {
@@ -76,7 +77,12 @@ pub struct BiliNormalVideoProvider {
     videoinfo: Option<JsonValue>,
     /// Player url extract from HTML (`window.__playinfo__`)
     playinfo: Option<JsonValue>,
+    /// Part list (from videoinfo or API)
     partinfo: Option<PartInfoList>,
+    /// Information from API (`https://api.bilibili.com/x/player/v2`)
+    cidinfo: HashMap<usize, JsonValue>,
+    /// Input Url Information (Set in [`basic_info`](#method.basic_info) function)
+    url: Option<UrlInfo>,
 }
 
 impl BiliNormalVideoProvider {
@@ -86,8 +92,10 @@ impl BiliNormalVideoProvider {
     fn basic_info(&mut self, url: UrlInfo) -> bool {
         const PLAYERINFO: &str = "window.__playinfo__";
         const INITIAL: &str = "window.__INITIAL_STATE__";
+        self.url = Some(url.clone());
         let link = format!("https://www.bilibili.com/video/{}", url.bv);
-        let r = self.base.client.as_ref().unwrap().get(link);
+        let c = self.base.client.as_ref().unwrap();
+        let r = c.get(link);
         match r {
             Some(_) => {}
             None => return false,
@@ -145,10 +153,97 @@ impl BiliNormalVideoProvider {
         let pages = &self.videoinfo.as_ref().unwrap()["videoData"]["pages"];
         let pl = PartInfoList::try_from(pages);
         if pl.is_err() {
-            // TODO: Try get list from API
+            let re = c.get_with_param(
+                "https://api.bilibili.com/x/player/pagelist",
+                json::object! {"bvid": url.bv, "jsonp": "jsonp"},
+            );
+            if re.is_none() {
+                println!("{}", gettext("Can not get page list."));
+                return false;
+            }
+            let re = re.unwrap();
+            if re.status().as_u16() >= 400 {
+                println!("{}\n{}", gettext("Can not get page list."), re.status());
+                return false;
+            }
+            let t = block_on(re.text_with_charset("UTF-8"));
+            if t.is_err() {
+                println!("{}", t.unwrap_err());
+                return false;
+            }
+            let t = t.unwrap();
+            let pages = json::parse(t.as_str());
+            if pages.is_err() {
+                println!("{}", pages.unwrap_err());
+                return false;
+            }
+            let pages = pages.unwrap();
+            let code = pages["code"].as_i64().unwrap();
+            if code != 0 {
+                println!("{} {}", code, pages["message"].as_str().unwrap());
+                return false;
+            }
+            let pages = &pages["data"];
+            let pl = PartInfoList::try_from(pages);
+            if pl.is_err() {
+                println!("{}", pl.unwrap_err());
+                return false;
+            }
+            self.partinfo = Some(pl.unwrap());
+        } else {
+            self.partinfo = Some(pl.unwrap());
+        }
+        let fcid = self.partinfo.as_ref().unwrap().first_cid();
+        if fcid.is_none() {
+            println!("{}", gettext("Can not find CID."));
             return false;
         }
-        self.partinfo = Some(pl.unwrap());
+        let fcid = fcid.unwrap();
+        if !self.get_cid_info(fcid) {
+            return false;
+        }
+        true
+    }
+
+    /// Get cid info from API (`https://api.bilibili.com/x/player/v2`) and write to [`cidinfo`](#structfield.cidinfo) if success
+    /// * cid - CID
+    /// 
+    /// Return true if successed.
+    fn get_cid_info(&mut self, cid: usize) -> bool {
+        let c = self.base.client.as_ref().unwrap();
+        let url = self.url.as_ref().unwrap().clone();
+        let r = c.get_with_param(
+            "https://api.bilibili.com/x/player/v2",
+            json::object! {"aid": url.av, "bvid": url.bv, "cid": cid},
+        );
+        if r.is_none() {
+            println!("{}", gettext("Can not get part info."));
+            return false;
+        }
+        let r = r.unwrap();
+        if r.status().as_u16() > 400 {
+            println!("{}\n{}", gettext("Can not get part info."), r.status());
+            return false;
+        }
+        let t = block_on(r.text_with_charset("UTF-8"));
+        if t.is_err() {
+            println!("{}", t.unwrap_err());
+            return false;
+        }
+        let t = t.unwrap();
+        let re = json::parse(t.as_str());
+        if re.is_err() {
+            println!("{}", re.unwrap_err());
+            return false;
+        }
+        let re = re.unwrap();
+        let code = re["code"].as_i64().unwrap();
+        if code != 0 {
+            println!("{} {}", code, re["message"].as_str().unwrap());
+            return false;
+        }
+        let data = &re["data"];
+        self.cidinfo.insert(cid, data.clone());
         true
     }
 
@@ -229,6 +324,8 @@ impl Provider for BiliNormalVideoProvider {
             videoinfo: None,
             playinfo: None,
             partinfo: None,
+            cidinfo: HashMap::new(),
+            url: None,
         }
     }
 
