@@ -16,9 +16,15 @@ fn check_part(value: JsonValue) -> bool {
 }
 
 pub fn get_bili_normal_video_options() -> Vec<OptDes> {
-    vec![OptDes::new("part", Some("p"), gettext("The video part number of a page."), true, true, Some("part number")).unwrap()]
+    vec![
+        OptDes::new("part", Some("p"), gettext("The video part number of a page."), true, true, Some("part number")).unwrap(),
+        OptDes::new("no-use-storylist", None, gettext("Don't use story list when parsing interactive video. (Warning: This will slow the speed.)"), false, false, None).unwrap(),
+    ]
 }
 
 pub fn get_bili_normal_video_settings() -> Vec<SettingDes> {
-    vec![SettingDes::new("part", gettext("The video part number of a page.\nExample: \n2\tSelect part 2\n\"2-34\"\tSelect from part 2 to part 34.\n\"3, 5-10\" or [3, \"5-10\"]\tSelect part 3 and from part 5 to part 10.\n\"3-\"\tSelect from part 3 to last part.\n\"-10\"\tSelect from first part to part 10.\n\"-\"\tSelect all parts."), JsonValueType::Multiple, Some(check_part)).unwrap()]
+    vec![
+        SettingDes::new("part", gettext("The video part number of a page.\nExample: \n2\tSelect part 2\n\"2-34\"\tSelect from part 2 to part 34.\n\"3, 5-10\" or [3, \"5-10\"]\tSelect part 3 and from part 5 to part 10.\n\"3-\"\tSelect from part 3 to last part.\n\"-10\"\tSelect from first part to part 10.\n\"-\"\tSelect all parts."), JsonValueType::Multiple, Some(check_part)).unwrap(),
+        SettingDes::new("no-use-storylist", gettext("Don't use story list when parsing interactive video. (Warning: This will slow the speed.)"), JsonValueType::Boolean, None).unwrap(),
+    ]
 }

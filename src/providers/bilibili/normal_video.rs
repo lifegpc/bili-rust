@@ -1,4 +1,5 @@
 extern crate futures;
+extern crate json;
 extern crate regex;
 
 use crate::cookies_json::CookiesJar;
@@ -8,6 +9,7 @@ use crate::i18n::gettext;
 use crate::metadata::ExtractInfo;
 use crate::metadata::VideoMetadata;
 use crate::providers::bilibili::base::BiliBaseProvider;
+use crate::providers::bilibili::interaction::InteractionVideoParser;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_options;
 use crate::providers::bilibili::opt_list::get_bili_normal_video_settings;
 use crate::providers::bilibili::parser::HTMLDataInJS;
@@ -94,104 +96,106 @@ impl BiliNormalVideoProvider {
         const INITIAL: &str = "window.__INITIAL_STATE__";
         self.url = Some(url.clone());
         let link = format!("https://www.bilibili.com/video/{}", url.bv);
-        let c = self.base.client.as_ref().unwrap();
-        let r = c.get(link);
-        match r {
-            Some(_) => {}
-            None => return false,
-        }
-        let r = r.unwrap();
-        if r.status().as_u16() >= 400 {
-            println!(
-                "{}\"{}\"",
-                gettext("Error when geting the webpage: "),
-                r.status().as_str()
-            );
-            return false;
-        }
-        let t = block_on(r.text_with_charset("UTF-8"));
-        match t {
-            Ok(_) => {}
-            Err(e) => {
-                println!("{}\"{}\"", gettext("Error when geting the webpage: "), e);
+        {
+            let c = self.base.client.as_ref().unwrap();
+            let r = c.get(link);
+            match r {
+                Some(_) => {}
+                None => return false,
+            }
+            let r = r.unwrap();
+            if r.status().as_u16() >= 400 {
+                println!(
+                    "{}\"{}\"",
+                    gettext("Error when geting the webpage: "),
+                    r.status().as_str()
+                );
                 return false;
             }
-        }
-        let t = t.unwrap();
-        let mut js = HTMLDataInJS::new();
-        if !js.parse(t.as_str(), vec![PLAYERINFO, INITIAL]) {
-            return false;
-        }
-        let data = js.maps.get(INITIAL);
-        if data.is_none() {
-            return false;
-        }
-        let data = data.unwrap();
-        let dat = &data[..data.len() - 122];
-        let data = json::parse(dat);
-        match data {
-            Ok(_) => {}
-            Err(e) => {
-                println!("{}\"{}\"", gettext("Can not parse as JSON: "), e);
-                return false;
-            }
-        }
-        self.videoinfo = Some(data.unwrap());
-        let pinfo = js.maps.get(PLAYERINFO);
-        if !pinfo.is_none() {
-            let pinfo = pinfo.unwrap();
-            let pinfo = json::parse(pinfo.as_str());
-            match pinfo {
-                Ok(pinfo) => {
-                    self.playinfo = Some(pinfo);
-                }
+            let t = block_on(r.text_with_charset("UTF-8"));
+            match t {
+                Ok(_) => {}
                 Err(e) => {
-                    println!("{}\"{}\"", gettext("Can not parse as JSON: "), e);
+                    println!("{}\"{}\"", gettext("Error when geting the webpage: "), e);
+                    return false;
                 }
-            }
-        }
-        let pages = &self.videoinfo.as_ref().unwrap()["videoData"]["pages"];
-        let pl = PartInfoList::try_from(pages);
-        if pl.is_err() {
-            let re = c.get_with_param(
-                "https://api.bilibili.com/x/player/pagelist",
-                json::object! {"bvid": url.bv, "jsonp": "jsonp"},
-            );
-            if re.is_none() {
-                println!("{}", gettext("Can not get page list."));
-                return false;
-            }
-            let re = re.unwrap();
-            if re.status().as_u16() >= 400 {
-                println!("{}\n{}", gettext("Can not get page list."), re.status());
-                return false;
-            }
-            let t = block_on(re.text_with_charset("UTF-8"));
-            if t.is_err() {
-                println!("{}", t.unwrap_err());
-                return false;
             }
             let t = t.unwrap();
-            let pages = json::parse(t.as_str());
-            if pages.is_err() {
-                println!("{}", pages.unwrap_err());
+            let mut js = HTMLDataInJS::new();
+            if !js.parse(t.as_str(), vec![PLAYERINFO, INITIAL]) {
                 return false;
             }
-            let pages = pages.unwrap();
-            let code = pages["code"].as_i64().unwrap();
-            if code != 0 {
-                println!("{} {}", code, pages["message"].as_str().unwrap());
+            let data = js.maps.get(INITIAL);
+            if data.is_none() {
                 return false;
             }
-            let pages = &pages["data"];
+            let data = data.unwrap();
+            let dat = &data[..data.len() - 122];
+            let data = json::parse(dat);
+            match data {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("{}\"{}\"", gettext("Can not parse as JSON: "), e);
+                    return false;
+                }
+            }
+            self.videoinfo = Some(data.unwrap());
+            let pinfo = js.maps.get(PLAYERINFO);
+            if !pinfo.is_none() {
+                let pinfo = pinfo.unwrap();
+                let pinfo = json::parse(pinfo.as_str());
+                match pinfo {
+                    Ok(pinfo) => {
+                        self.playinfo = Some(pinfo);
+                    }
+                    Err(e) => {
+                        println!("{}\"{}\"", gettext("Can not parse as JSON: "), e);
+                    }
+                }
+            }
+            let pages = &self.videoinfo.as_ref().unwrap()["videoData"]["pages"];
             let pl = PartInfoList::try_from(pages);
             if pl.is_err() {
-                println!("{}", pl.unwrap_err());
-                return false;
+                let re = c.get_with_param(
+                    "https://api.bilibili.com/x/player/pagelist",
+                    json::object! {"bvid": url.bv.clone(), "jsonp": "jsonp"},
+                );
+                if re.is_none() {
+                    println!("{}", gettext("Can not get page list."));
+                    return false;
+                }
+                let re = re.unwrap();
+                if re.status().as_u16() >= 400 {
+                    println!("{}\n{}", gettext("Can not get page list."), re.status());
+                    return false;
+                }
+                let t = block_on(re.text_with_charset("UTF-8"));
+                if t.is_err() {
+                    println!("{}", t.unwrap_err());
+                    return false;
+                }
+                let t = t.unwrap();
+                let pages = json::parse(t.as_str());
+                if pages.is_err() {
+                    println!("{}", pages.unwrap_err());
+                    return false;
+                }
+                let pages = pages.unwrap();
+                let code = pages["code"].as_i64().unwrap();
+                if code != 0 {
+                    println!("{} {}", code, pages["message"].as_str().unwrap());
+                    return false;
+                }
+                let pages = &pages["data"];
+                let pl = PartInfoList::try_from(pages);
+                if pl.is_err() {
+                    println!("{}", pl.unwrap_err());
+                    return false;
+                }
+                self.partinfo = Some(pl.unwrap());
+            } else {
+                self.partinfo = Some(pl.unwrap());
             }
-            self.partinfo = Some(pl.unwrap());
-        } else {
-            self.partinfo = Some(pl.unwrap());
         }
         let fcid = self.partinfo.as_ref().unwrap().first_cid();
         if fcid.is_none() {
@@ -202,12 +206,37 @@ impl BiliNormalVideoProvider {
         if !self.get_cid_info(fcid) {
             return false;
         }
+        let interaction = self.is_interaction_video();
+        if interaction.is_none() {
+            return false;
+        }
+        let interaction = interaction.unwrap();
+        if interaction {
+            let gv = &self.cidinfo.get(&fcid).unwrap()["interaction"]["graph_version"]
+                .as_usize()
+                .unwrap();
+            let buvid3 = self.base.client.as_ref().unwrap().get_cookie("buvid3");
+            let pc = self.part_count();
+            let mut parser = InteractionVideoParser::new(
+                *gv,
+                buvid3,
+                self.partinfo.as_ref().unwrap().clone(),
+                url.clone(),
+                pc,
+                self.base.opt.clone(),
+                self.base.se.clone(),
+            );
+            if !parser.parse(self.base.client.as_mut().unwrap()) {
+                return false;
+            }
+            self.partinfo = Some(parser.part_list);
+        }
         true
     }
 
     /// Get cid info from API (`https://api.bilibili.com/x/player/v2`) and write to [`cidinfo`](#structfield.cidinfo) if success
     /// * cid - CID
-    /// 
+    ///
     /// Return true if successed.
     fn get_cid_info(&mut self, cid: usize) -> bool {
         let c = self.base.client.as_ref().unwrap();
@@ -253,6 +282,26 @@ impl BiliNormalVideoProvider {
             return None;
         }
         Some(md)
+    }
+
+    /// Return true if it is a interactive video.  
+    /// Need first CID's info in [`cidinfo`](#structfield.cidinfo)
+    fn is_interaction_video(&self) -> Option<bool> {
+        let fcid = self.partinfo.as_ref().unwrap().first_cid();
+        if fcid.is_none() {
+            return None;
+        }
+        let fcid = fcid.unwrap();
+        let info = self.cidinfo.get(&fcid);
+        if info.is_none() {
+            return None;
+        }
+        let info = info.unwrap();
+        let i = &info["interaction"];
+        if i.is_object() {
+            return Some(true);
+        }
+        Some(false)
     }
 
     fn parse_url(url: &str) -> Option<UrlInfo> {
@@ -311,6 +360,19 @@ impl BiliNormalVideoProvider {
                     }
                 }
                 None => {}
+            }
+        }
+        None
+    }
+
+    /// Get the count of parts from [`videoinfo`](#structfield.videoinfo)
+    fn part_count(&self) -> Option<usize> {
+        if !self.videoinfo.is_none() {
+            let vi = self.videoinfo.as_ref().unwrap();
+            let c = &vi["videoData"]["videos"];
+            let c = c.as_usize();
+            if !c.is_none() {
+                return Some(c.unwrap());
             }
         }
         None

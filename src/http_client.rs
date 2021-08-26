@@ -175,6 +175,17 @@ impl CookieClient {
     pub fn set_cookies_jar(&mut self, jar: CookiesJar) {
         self.jar = jar.clone();
     }
+
+    /// Get cookie's value.
+    /// * key - cookie's name
+    pub fn get_cookie(&self, key: &str) -> Option<String> {
+        let c = self.jar.cookies.get(key);
+        if !c.is_none() {
+            let c = c.unwrap();
+            return Some(String::from(c.value()));
+        }
+        None
+    }
 }
 
 impl Clone for CookieClient {
