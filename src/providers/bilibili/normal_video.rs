@@ -1,3 +1,4 @@
+extern crate chrono;
 extern crate futures;
 extern crate json;
 extern crate regex;
@@ -7,6 +8,7 @@ use crate::getopt::OptDes;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
 use crate::metadata::ExtractInfo;
+use crate::metadata::NoInTotal;
 use crate::metadata::VideoMetadata;
 use crate::providers::bilibili::base::BiliBaseProvider;
 use crate::providers::bilibili::interaction::InteractionVideoParser;
@@ -18,6 +20,8 @@ use crate::providers::bilibili::util;
 use crate::providers::provider_base::Provider;
 use crate::settings::SettingDes;
 use crate::settings::SettingStore;
+use chrono::TimeZone;
+use chrono::Utc;
 use futures::executor::block_on;
 use json::JsonValue;
 use regex::Regex;
@@ -276,11 +280,79 @@ impl BiliNormalVideoProvider {
         true
     }
 
-    fn gen_video_metadata(&self) -> Option<VideoMetadata> {
-        let md = VideoMetadata::default();
+    /// Generate video metadata.
+    /// * `p` - Part number
+    fn gen_video_metadata(&self, p: Option<usize>) -> Option<VideoMetadata> {
+        let mut md = VideoMetadata::default();
         if self.videoinfo.is_none() {
             return None;
         }
+        let vi = self.videoinfo.as_ref().unwrap();
+        println!("{}", vi.pretty(2));
+        let c = self.part_count();
+        let n = match p {
+            Some(p) => p,
+            None => 1,
+        };
+        if c.is_some() {
+            let tr = NoInTotal::new(n, c.unwrap());
+            if tr.is_some() {
+                md.track = Some(tr.unwrap());
+            }
+        }
+        let t = vi["videoData"]["title"].as_str();
+        let pa = &self.partinfo.as_ref().unwrap().list[n - 1];
+        md.extra.insert(String::from("part"), pa.part.clone());
+        if t.is_some() {
+            if c.is_none() || c.unwrap() == 1 {
+                md.title = Some(String::from(t.unwrap()));
+            } else {
+                md.title = Some(format!("{} - {}", t.unwrap(), pa.part));
+            }
+            md.album = Some(String::from(t.unwrap()));
+        }
+        let des = vi["videoData"]["desc"].as_str();
+        if des.is_some() {
+            md.description = Some(String::from(des.unwrap()));
+        }
+        let au = vi["videoData"]["owner"]["name"].as_str();
+        if au.is_some() {
+            md.author = Some(String::from(au.unwrap()));
+            md.album_artist = Some(String::from(au.unwrap()));
+        }
+        let bv = vi["videoData"]["bvid"].as_str();
+        if bv.is_some() {
+            md.video_id = Some(String::from(bv.unwrap()));
+            md.extra
+                .insert(String::from("bvid"), String::from(bv.unwrap()));
+        }
+        let pubdate = vi["videoData"]["pubdate"].as_i64();
+        if pubdate.is_some() {
+            let t = Utc.timestamp(pubdate.unwrap(), 0);
+            md.date = Some(t);
+            md.extra.insert(String::from("pubdate"), format!("{:?}", t));
+        }
+        let ctime = vi["videoData"]["ctime"].as_i64();
+        if ctime.is_some() {
+            let t = Utc.timestamp(ctime.unwrap(), 0);
+            if md.date.is_none() {
+                md.date = Some(t);
+            }
+            md.extra.insert(String::from("ctime"), format!("{:?}", t));
+        }
+        let tags = &vi["tags"];
+        for tag in tags.members() {
+            let t = tag["tag_name"].as_str();
+            if t.is_some() {
+                md.tags.push(String::from(t.unwrap()));
+            }
+        }
+        let aid = vi["videoData"]["aid"].as_i64();
+        if aid.is_some() {
+            md.extra
+                .insert(String::from("aid"), format!("AV{}", aid.unwrap()));
+        }
+        println!("{:?}", md);
         Some(md)
     }
 
@@ -414,7 +486,7 @@ impl Provider for BiliNormalVideoProvider {
         if !self.basic_info(u) {
             return None;
         }
-        let re = self.gen_video_metadata();
+        let re = self.gen_video_metadata(None);
         if re.is_none() {
             return None;
         }

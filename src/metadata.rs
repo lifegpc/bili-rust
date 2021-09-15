@@ -5,6 +5,7 @@ use chrono::Utc;
 use std::clone::Clone;
 use std::collections::HashMap;
 use std::default::Default;
+use std::fmt::Debug;
 
 /// Present a current number in a total value
 pub struct NoInTotal {
@@ -12,6 +13,19 @@ pub struct NoInTotal {
     _no: usize,
     /// Total value
     _total: usize,
+}
+
+impl NoInTotal {
+    pub fn new(no: usize, total: usize) -> Option<Self> {
+        if no > total {
+            None
+        } else {
+            Some(Self {
+                _no: no,
+                _total: total,
+            })
+        }
+    }
 }
 
 impl Clone for NoInTotal {
@@ -23,6 +37,13 @@ impl Clone for NoInTotal {
     }
 }
 
+impl Debug for NoInTotal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{}/{}", self._no, self._total))
+    }
+}
+
+#[derive(Debug)]
 /// Video metadata
 pub struct VideoMetadata {
     /// Video title
@@ -92,16 +113,19 @@ impl Default for VideoMetadata {
 #[derive(Clone, Copy, PartialEq)]
 pub enum InfoType {
     Video,
+    VideoList,
 }
 
 pub struct VideoInfo {
     pub meta: VideoMetadata,
+    pub cover: Option<String>,
 }
 
 impl Clone for VideoInfo {
     fn clone(&self) -> VideoInfo {
         VideoInfo {
             meta: self.meta.clone(),
+            cover: self.cover.clone(),
         }
     }
 }
@@ -109,6 +133,7 @@ impl Clone for VideoInfo {
 pub struct ExtractInfo {
     pub typ: InfoType,
     pub video: Option<VideoInfo>,
+    pub videos: Option<Vec<VideoInfo>>,
 }
 
 impl Clone for ExtractInfo {
@@ -116,6 +141,7 @@ impl Clone for ExtractInfo {
         ExtractInfo {
             typ: self.typ.clone(),
             video: self.video.clone(),
+            videos: self.videos.clone(),
         }
     }
 }
