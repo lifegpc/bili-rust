@@ -90,7 +90,7 @@ impl Provider for BiliBaseProvider {
                 return None;
             }
         }
-        let client = self.client.as_ref().unwrap();
+        let client = self.client.as_mut().unwrap();
         let r = client.get("https://api.bilibili.com/x/web-interface/nav");
         match r {
             Some(_) => {}

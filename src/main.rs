@@ -17,7 +17,9 @@ use cookies_json::CookiesJson;
 use getopt::ConfigCommand;
 use getopt::OptStore;
 use i18n::gettext;
+use providers::bilibili::normal_video::BiliNormalVideoProvider;
 use providers::provider_base::Provider;
+use providers::tiktok::video::TiktokVideoProvider;
 use settings::SettingStore;
 
 struct Main {
@@ -114,15 +116,21 @@ impl Main {
         if url == "config" {
             return self.run_config();
         }
-        let pro = providers::match_provider(url.as_str());
-        match pro {
-            Some(_) => {}
-            None => {
-                println!("{}", gettext("Can not find suitable provider."));
-                return 1;
-            }
+        self.match_provider(url.as_str())
+    }
+
+    fn match_provider(&mut self, url: &str) -> i32 {
+        if BiliNormalVideoProvider::match_url(url) {
+            return self.run_iternal(&mut BiliNormalVideoProvider::new(), String::from(url));
         }
-        let mut pro = pro.unwrap();
+        if TiktokVideoProvider::match_url(url) {
+            return self.run_iternal(&mut TiktokVideoProvider::new(), String::from(url));
+        }
+        println!("{}", gettext("Can not find suitable provider."));
+        return 1;
+    }
+
+    fn run_iternal(&mut self, pro: &mut impl Provider, url: String) -> i32 {
         if pro.has_custom_options() {
             pro.add_custom_options(&mut self.opt);
         }

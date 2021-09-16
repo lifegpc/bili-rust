@@ -101,7 +101,7 @@ impl BiliNormalVideoProvider {
         self.url = Some(url.clone());
         let link = format!("https://www.bilibili.com/video/{}", url.bv);
         {
-            let c = self.base.client.as_ref().unwrap();
+            let c = self.base.client.as_mut().unwrap();
             let r = c.get(link);
             match r {
                 Some(_) => {}
@@ -243,7 +243,7 @@ impl BiliNormalVideoProvider {
     ///
     /// Return true if successed.
     fn get_cid_info(&mut self, cid: usize) -> bool {
-        let c = self.base.client.as_ref().unwrap();
+        let c = self.base.client.as_mut().unwrap();
         let url = self.url.as_ref().unwrap().clone();
         let r = c.get_with_param(
             "https://api.bilibili.com/x/player/v2",

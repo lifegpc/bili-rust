@@ -2,6 +2,7 @@ extern crate futures;
 extern crate json;
 extern crate reqwest;
 
+use crate::cookies_json::Cookie;
 use crate::cookies_json::CookiesJar;
 use crate::i18n::gettext;
 use futures::executor::block_on;
@@ -13,9 +14,14 @@ use reqwest::Response;
 use std::clone::Clone;
 use std::collections::HashMap;
 
+/// A HTTP Client which support send Cookie
 pub struct CookieClient {
+    /// HTTP Client
     client: Client,
+    /// Cookies
     jar: CookiesJar,
+    /// Enable handle set-cookie HTTP header
+    set_cookie: bool,
 }
 
 impl CookieClient {
@@ -27,6 +33,42 @@ impl CookieClient {
         CookieClient {
             client: client.clone(),
             jar: j,
+            set_cookie: false,
+        }
+    }
+
+    pub fn enable_set_cookie(&mut self) {
+        self.set_cookie = true;
+    }
+
+    pub fn handle_set_cookie(&mut self, r: &Response) {
+        let u = r.url();
+        let h = r.headers();
+        let v = h.get_all("Set-Cookie");
+        for val in v {
+            let val = val.to_str();
+            match val {
+                Ok(v) => {
+                    let c = Cookie::from_set_cookie(v);
+                    if c.is_some() {
+                        let mut c = c.unwrap();
+                        let dms = c.domain();
+                        if dms.is_none() {
+                            let dm = u.domain();
+                            c.set_domain(dm);
+                        }
+                        let path = c.path();
+                        if path.is_none() {
+                            let pa = u.path();
+                            c.set_path(Some(pa));
+                        }
+                        self.jar.add(c);
+                    }
+                }
+                Err(e) => {
+                    println!("{}", e);
+                }
+            }
         }
     }
 
@@ -41,7 +83,7 @@ impl CookieClient {
     /// client.get_with_param("https://test.com/a", json::array![["daa", "param1"]]);
     /// ```
     /// It will GET `https://test.com/a?data=param1`, `https://test.com/a?daa=%7B%22ad%22%3A%22test%22%7D`, `https://test.com/a?daa=param1`
-    pub fn get_with_param<U: IntoUrl>(&self, url: U, param: JsonValue) -> Option<Response> {
+    pub fn get_with_param<U: IntoUrl>(&mut self, url: U, param: JsonValue) -> Option<Response> {
         let u = url.into_url();
         if u.is_err() {
             println!("{}\"{}\"", gettext("Can not parse URL: "), u.unwrap_err());
@@ -102,7 +144,8 @@ impl CookieClient {
         self.get(u.as_str())
     }
 
-    pub fn get<U: IntoUrl>(&self, url: U) -> Option<Response> {
+    /// Send GET requests
+    pub fn get<U: IntoUrl>(&mut self, url: U) -> Option<Response> {
         let r = self.aget(url);
         let r = r.send();
         let r = block_on(r);
@@ -113,9 +156,16 @@ impl CookieClient {
                 return None;
             }
         }
-        Some(r.unwrap())
+        let r = r.unwrap();
+        if self.set_cookie {
+            self.handle_set_cookie(&r);
+        }
+        Some(r)
     }
 
+    /// Get a request builder which contains cookies information.
+    /// # Notes
+    /// You need call `handle_set_cookie` to handle `set-cookie` headers in response.
     pub fn aget<U: IntoUrl>(&self, url: U) -> RequestBuilder {
         let s = url.as_str();
         let mut r = self.client.get(s);
@@ -193,6 +243,7 @@ impl Clone for CookieClient {
         CookieClient {
             client: self.client.clone(),
             jar: self.jar.clone(),
+            set_cookie: self.set_cookie.clone(),
         }
     }
 }

@@ -1,5 +1,6 @@
 extern crate json;
 extern crate thirtyfour;
+extern crate urlencoding;
 
 use crate::i18n::gettext;
 use crate::path::get_exe_path;
@@ -15,6 +16,7 @@ use std::io::Write;
 use std::path::Path;
 use thirtyfour::common::cookie::Cookie as TFCookie;
 
+#[derive(Debug, PartialEq)]
 /// Cookies structure
 pub struct Cookie {
     /// Cookie's name
@@ -82,6 +84,42 @@ impl Cookie {
                 self._path = None;
             }
         }
+    }
+
+    pub fn from_set_cookie(c: &str) -> Option<Cookie> {
+        let li = c.split(';').collect::<Vec<&str>>();
+        if li.len() == 0 {
+            return None;
+        }
+        let f = li[0].trim();
+        let fli = f.split("=").collect::<Vec<&str>>();
+        let key = fli[0];
+        let v = if fli.len() > 1 {
+            urlencoding::decode(fli[1]).unwrap().into_owned()
+        } else {
+            return None;
+        };
+        if key.len() == 0 {
+            return None;
+        }
+        let mut c = Self::new(key, v.as_str());
+        let mut it = li.iter();
+        it.next();
+        for val in it {
+            let v = val.trim();
+            let vl = v.split('=').collect::<Vec<&str>>();
+            if vl.len() > 1 {
+                let k = vl[0];
+                let v = vl[1];
+                let kl = k.to_lowercase();
+                if kl == "domain" {
+                    c.set_domain(Some(v));
+                } else if kl == "path" {
+                    c.set_path(Some(v));
+                }
+            }
+        }
+        Some(c)
     }
 
     /// Convert from thirtyfour's cookie structure.
@@ -587,4 +625,19 @@ impl Clone for CookiesJson {
             cookies: self.cookies.clone(),
         }
     }
+}
+
+#[test]
+fn test_from_set_cookie() {
+    assert_eq!(
+        Some(Cookie::new("test", "value")),
+        Cookie::from_set_cookie("test=value")
+    );
+    let mut c = Cookie::new("n", "v");
+    c.set_domain(Some(".test.com"));
+    c.set_path(Some("/www"));
+    assert_eq!(
+        Some(c),
+        Cookie::from_set_cookie("n=v; Domain=.test.com; Path=/www")
+    );
 }
