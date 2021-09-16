@@ -16,7 +16,7 @@ regex = "1.5.4"
 reqwest = { version = "0.11", features = ["brotli", "deflate", "gzip"] }
 subprocess = "0.2.7"
 thirtyfour = "0.27.0"
-tokio = "1.9.0"
+tokio = "1.11.0"
 # url = "2.2.2"
 # urlencoding = "2.1.0"
 
