@@ -1,16 +1,38 @@
+extern crate regex;
 extern crate reqwest;
 
 use crate::cookies_json::CookiesJar;
 use crate::http_client::CookieClient;
 use crate::providers::provider_base::Provider;
+use regex::Regex;
 use reqwest::header::HeaderMap;
 use reqwest::Client;
+
+lazy_static! {
+    static ref RE: Regex = Regex::new("(?i)<script[^>]+\\bid=[\"']__NEXT_DATA__[^>]+>\\s*(\\{.+?\\})\\s*</script").unwrap();
+}
 
 pub struct TiktokBaseProvider {
     pub client: Option<CookieClient>,
 }
 
 impl TiktokBaseProvider {
+    pub fn extract_info(&mut self, text: &str) -> Option<String> {
+        println!("{:?}", *RE);
+        let mut r = RE.captures(text);
+        if r.is_none() {
+            return None;
+        }
+        let mut it = r.as_mut().unwrap().iter();
+        it.next();
+        for v in it {
+            if v.is_some() {
+                return Some(String::from(v.unwrap().as_str()));
+            }
+        }
+        None
+    }
+
     pub fn init_client(&mut self, jar: Option<&CookiesJar>) -> bool {
         let mut builder = Client::builder();
         let mut h = HeaderMap::new();
