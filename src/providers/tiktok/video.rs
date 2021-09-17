@@ -6,7 +6,10 @@ extern crate regex;
 use crate::cookies_json::CookiesJar;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
+use crate::json_util::jv_multikey_value;
 use crate::metadata::ExtractInfo;
+use crate::metadata::InfoType;
+use crate::metadata::VideoInfo;
 use crate::metadata::VideoMetadata;
 use crate::providers::provider_base::Provider;
 use crate::providers::tiktok::base::TiktokBaseProvider;
@@ -164,6 +167,43 @@ impl TiktokVideoProvider {
         }
         Some(m)
     }
+
+    fn extract_playinfo(&self, i: &mut VideoInfo) -> bool {
+        let vi = self.video_info.as_ref().unwrap();
+        let v = &vi["props"]["pageProps"]["itemInfo"]["itemStruct"]["video"];
+        if !v.is_object() {
+            println!(
+                "{}",
+                gettext("Can not get playback url from video information.")
+            );
+            return false;
+        }
+        let cov = jv_multikey_value(v, vec!["originCover", "cover"]);
+        if cov.is_some() {
+            let cov = cov.unwrap().as_str();
+            if cov.is_some() {
+                i.cover = Some(String::from(cov.unwrap()));
+            }
+        }
+        let url = jv_multikey_value(v, vec!["downloadAddr", "playAddr"]);
+        if url.is_none() {
+            println!(
+                "{}",
+                gettext("Can not get playback url from video information.")
+            );
+            return false;
+        }
+        let u = url.unwrap().as_str();
+        if u.is_none() {
+            println!(
+                "{}",
+                gettext("Can not get playback url from video information.")
+            );
+            return false;
+        }
+        i.url = Some(String::from(u.unwrap()));
+        true
+    }
 }
 
 impl Provider for TiktokVideoProvider {
@@ -201,8 +241,19 @@ impl Provider for TiktokVideoProvider {
             return None;
         }
         let m = m.unwrap();
-        println!("{:?}", m);
-        None
+        let mut vi = VideoInfo {
+            meta: m,
+            ..Default::default()
+        };
+        if !self.extract_playinfo(&mut vi) {
+            return None;
+        }
+        let ei = ExtractInfo {
+            typ: InfoType::Video,
+            video: Some(vi),
+            ..Default::default()
+        };
+        Some(ei)
     }
 
     fn init(&mut self, jar: Option<&CookiesJar>, _opt: OptStore, _settings: SettingStore) -> bool {

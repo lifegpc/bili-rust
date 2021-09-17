@@ -110,15 +110,34 @@ impl Default for VideoMetadata {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// The type of [`ExtractInfo`](struct.ExtractInfo.html)
 pub enum InfoType {
+    /// A single video
     Video,
+    /// A list of videos
     VideoList,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// The video play information type used in [`VideoInfo`](struct.VideoInfo.html)
+pub enum VideoPlayInfoType {
+    /// Only have a single url which point to the video.
+    SignleUrl,
+}
+
+#[derive(Debug)]
+/// Video information
 pub struct VideoInfo {
+    /// The metadata of the video
     pub meta: VideoMetadata,
+    /// The url of cover image
     pub cover: Option<String>,
+    /// The type of video playurl information
+    pub typ: VideoPlayInfoType,
+    /// The playback url of video.
+    /// Used when `typ` is [`VideoPlayInfoType::SignleUrl`](enum.VideoPlayInfoType.html#variant.SignleUrl)
+    pub url: Option<String>,
 }
 
 impl Clone for VideoInfo {
@@ -126,10 +145,24 @@ impl Clone for VideoInfo {
         VideoInfo {
             meta: self.meta.clone(),
             cover: self.cover.clone(),
+            typ: self.typ.clone(),
+            url: self.url.clone(),
         }
     }
 }
 
+impl Default for VideoInfo {
+    fn default() -> Self {
+        Self {
+            meta: VideoMetadata::default(),
+            cover: None,
+            typ: VideoPlayInfoType::SignleUrl,
+            url: None,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ExtractInfo {
     pub typ: InfoType,
     pub video: Option<VideoInfo>,
@@ -142,6 +175,16 @@ impl Clone for ExtractInfo {
             typ: self.typ.clone(),
             video: self.video.clone(),
             videos: self.videos.clone(),
+        }
+    }
+}
+
+impl Default for ExtractInfo {
+    fn default() -> Self {
+        Self {
+            typ: InfoType::Video,
+            video: None,
+            videos: None,
         }
     }
 }

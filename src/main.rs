@@ -5,6 +5,7 @@ mod cookies_json;
 mod getopt;
 mod http_client;
 mod i18n;
+mod json_util;
 mod metadata;
 mod opt_list;
 mod path;
