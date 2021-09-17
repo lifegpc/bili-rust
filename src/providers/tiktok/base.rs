@@ -17,8 +17,9 @@ pub struct TiktokBaseProvider {
 }
 
 impl TiktokBaseProvider {
+    /// Extract infomation from webpage
+    /// * `text` - The text of webpage
     pub fn extract_info(&mut self, text: &str) -> Option<String> {
-        println!("{:?}", *RE);
         let mut r = RE.captures(text);
         if r.is_none() {
             return None;

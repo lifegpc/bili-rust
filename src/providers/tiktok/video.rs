@@ -1,3 +1,4 @@
+extern crate chrono;
 extern crate futures;
 extern crate json;
 extern crate regex;
@@ -6,9 +7,12 @@ use crate::cookies_json::CookiesJar;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
 use crate::metadata::ExtractInfo;
+use crate::metadata::VideoMetadata;
 use crate::providers::provider_base::Provider;
 use crate::providers::tiktok::base::TiktokBaseProvider;
 use crate::settings::SettingStore;
+use chrono::TimeZone;
+use chrono::Utc;
 use futures::executor::block_on;
 use json::JsonValue;
 use regex::Regex;
@@ -29,6 +33,7 @@ pub struct TiktokVideoProvider {
 }
 
 impl TiktokVideoProvider {
+    /// Get video information
     fn get_info(&mut self) -> bool {
         if self.video_id.is_none() {
             return false;
@@ -83,6 +88,82 @@ impl TiktokVideoProvider {
         self.video_info = Some(j.unwrap());
         true
     }
+
+    /// Generate metadata
+    fn gen_metadata(&self) -> Option<VideoMetadata> {
+        if self.video_info.is_none() {
+            return None;
+        }
+        let vi = self.video_info.as_ref().unwrap();
+        let props = &vi["props"]["pageProps"];
+        if !props.is_object() {
+            println!(
+                "{}",
+                gettext("Can not get metadata from video information.")
+            );
+            return None;
+        }
+        let mut m = VideoMetadata::default();
+        let mt = &props["seoProps"]["metaParams"];
+        if mt.is_object() {
+            let ti = mt["title"].as_str();
+            if ti.is_some() {
+                m.title = Some(String::from(ti.unwrap()));
+                m.description = Some(String::from(ti.unwrap()));
+            }
+        }
+        let is = &props["itemInfo"]["itemStruct"];
+        if is.is_object() {
+            if m.title.is_none() {
+                let desc = is["desc"].as_str();
+                if desc.is_some() {
+                    m.title = Some(String::from(desc.unwrap()));
+                    m.description = Some(String::from(desc.unwrap()));
+                }
+            }
+            let ct = is["createTime"].as_i64();
+            if ct.is_some() {
+                let t = Utc.timestamp(ct.unwrap(), 0);
+                m.date = Some(t);
+                m.extra
+                    .insert(String::from("createTime"), format!("{:?}", t));
+            }
+            let au = &is["author"];
+            let aun = au["nickname"].as_str();
+            if aun.is_some() {
+                m.author = Some(String::from(aun.unwrap()));
+            }
+            let auun = au["uniqueId"].as_str();
+            if auun.is_some() {
+                m.extra
+                    .insert(String::from("authorUniqueId"), String::from(auun.unwrap()));
+            }
+            let auid = au["id"].as_str();
+            if auid.is_some() {
+                m.extra
+                    .insert(String::from("authorId"), String::from(auid.unwrap()));
+            }
+            let ausign = au["signature"].as_str();
+            if ausign.is_some() {
+                m.extra.insert(
+                    String::from("authorSignature"),
+                    String::from(ausign.unwrap()),
+                );
+            }
+            let id = is["id"].as_str();
+            if id.is_some() {
+                m.video_id = Some(String::from(id.unwrap()));
+            }
+            let cha = &is["challenges"];
+            for c in cha.members() {
+                let ti = c["title"].as_str();
+                if ti.is_some() {
+                    m.tags.push(String::from(ti.unwrap()));
+                }
+            }
+        }
+        Some(m)
+    }
 }
 
 impl Provider for TiktokVideoProvider {
@@ -115,7 +196,12 @@ impl Provider for TiktokVideoProvider {
         if !self.get_info() {
             return None;
         }
-        println!("{}", self.video_info.as_ref().unwrap().pretty(2));
+        let m = self.gen_metadata();
+        if m.is_none() {
+            return None;
+        }
+        let m = m.unwrap();
+        println!("{:?}", m);
         None
     }
 
