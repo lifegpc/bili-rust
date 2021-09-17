@@ -140,6 +140,18 @@ pub struct VideoInfo {
     pub url: Option<String>,
 }
 
+impl VideoInfo {
+    /// Check the information
+    pub fn check(&self) -> bool {
+        if self.typ == VideoPlayInfoType::SignleUrl {
+            if self.url.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+}
+
 impl Clone for VideoInfo {
     fn clone(&self) -> VideoInfo {
         VideoInfo {
@@ -167,6 +179,31 @@ pub struct ExtractInfo {
     pub typ: InfoType,
     pub video: Option<VideoInfo>,
     pub videos: Option<Vec<VideoInfo>>,
+}
+
+impl ExtractInfo {
+    /// Check the information.
+    pub fn check(&self) -> bool {
+        if self.typ == InfoType::Video {
+            if self.video.is_none() {
+                return false;
+            }
+            if !self.video.as_ref().unwrap().check() {
+                return false;
+            }
+        } else if self.typ == InfoType::VideoList {
+            if self.videos.is_none() {
+                return false;
+            }
+            let it = self.videos.as_ref().unwrap().iter();
+            for v in it {
+                if !v.check() {
+                    return false;
+                }
+            }
+        }
+        true
+    }
 }
 
 impl Clone for ExtractInfo {

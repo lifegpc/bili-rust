@@ -210,6 +210,11 @@ impl Main {
             println!("{}", gettext("Can not extract info."));
             return 1;
         }
+        let e = e.unwrap();
+        if !e.check() {
+            println!("{}", gettext("Extract informtaion is invalid."));
+            return 1;
+        }
         return 0;
     }
 
