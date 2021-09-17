@@ -2,6 +2,7 @@
 extern crate lazy_static;
 
 mod cookies_json;
+mod downloader;
 mod getopt;
 mod http_client;
 mod i18n;
@@ -15,6 +16,7 @@ mod webdriver;
 
 use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
+use downloader::downloader::Downloader;
 use getopt::ConfigCommand;
 use getopt::OptStore;
 use i18n::gettext;
@@ -215,6 +217,8 @@ impl Main {
             println!("{}", gettext("Extract informtaion is invalid."));
             return 1;
         }
+        let d = Downloader::new(&self.se, &self.opt, &e);
+        d.run();
         return 0;
     }
 

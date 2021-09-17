@@ -96,6 +96,10 @@ impl CookieClient {
         return cs;
     }
 
+    pub fn get_cookie_jar(&self) -> &CookiesJar {
+        &self.jar
+    }
+
     pub fn handle_set_cookie(&mut self, r: &Response) {
         let u = r.url();
         let h = r.headers();

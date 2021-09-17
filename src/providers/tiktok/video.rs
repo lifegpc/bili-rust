@@ -248,6 +248,8 @@ impl Provider for TiktokVideoProvider {
         if !self.extract_playinfo(&mut vi) {
             return None;
         }
+        vi.headers = Some(TiktokBaseProvider::default_headers());
+        vi.cookies = Some(self.base.client.as_ref().unwrap().get_cookie_jar().clone());
         let ei = ExtractInfo {
             typ: InfoType::Video,
             video: Some(vi),

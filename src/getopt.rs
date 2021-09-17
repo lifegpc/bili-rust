@@ -412,6 +412,32 @@ impl OptStore {
         last
     }
 
+    /// Get option's argument as boolean
+    /// * `key` - Option's name
+    /// # Notes
+    /// If an option not found, will retrun `None`. If option's value is not vaild, will panic.
+    /// # Panic
+    /// When an option's value is not valid, will panic.
+    pub fn get_option_as_bool(&self, key: &str) -> Option<bool> {
+        let c = self.get_option(key);
+        if c.is_none() {
+            return None;
+        }
+        let c = c.as_ref().unwrap().trim();
+        let i = c.parse::<i128>();
+        if i.is_ok() {
+            return Some(i.unwrap() != 0);
+        }
+        let lc = c.to_lowercase();
+        if lc == "true" {
+            return Some(true);
+        } else if lc == "false" {
+            return Some(false);
+        }
+        let s = gettext("The value of option \"<key>\" should be a boolean or number. For example: true, 1, false, 0.").replace("<key>", key);
+        panic!("{}", s)
+    }
+
     /// Get a description struct by using option's short name
     /// * `key` - Option's short name
     pub fn get_des_by_short_name(&self, key: &str) -> Option<OptDes> {

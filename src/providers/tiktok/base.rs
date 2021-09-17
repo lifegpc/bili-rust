@@ -9,7 +9,9 @@ use reqwest::header::HeaderMap;
 use reqwest::Client;
 
 lazy_static! {
-    static ref RE: Regex = Regex::new("(?i)<script[^>]+\\bid=[\"']__NEXT_DATA__[^>]+>\\s*(\\{.+?\\})\\s*</script").unwrap();
+    static ref RE: Regex =
+        Regex::new("(?i)<script[^>]+\\bid=[\"']__NEXT_DATA__[^>]+>\\s*(\\{.+?\\})\\s*</script")
+            .unwrap();
 }
 
 pub struct TiktokBaseProvider {
@@ -17,6 +19,20 @@ pub struct TiktokBaseProvider {
 }
 
 impl TiktokBaseProvider {
+    pub fn default_headers() -> HeaderMap {
+        let mut h = HeaderMap::new();
+        h.insert("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36".parse().unwrap());
+        h.insert("Connection", "keep-alive".parse().unwrap());
+        h.insert(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                .parse()
+                .unwrap(),
+        );
+        h.insert("Accept-Language", "zh-CN,zh;q=0.8".parse().unwrap());
+        return h;
+    }
+
     /// Extract infomation from webpage
     /// * `text` - The text of webpage
     pub fn extract_info(&mut self, text: &str) -> Option<String> {
@@ -36,16 +52,7 @@ impl TiktokBaseProvider {
 
     pub fn init_client(&mut self, jar: Option<&CookiesJar>) -> bool {
         let mut builder = Client::builder();
-        let mut h = HeaderMap::new();
-        h.insert("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36".parse().unwrap());
-        h.insert("Connection", "keep-alive".parse().unwrap());
-        h.insert(
-            "Accept",
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
-                .parse()
-                .unwrap(),
-        );
-        h.insert("Accept-Language", "zh-CN,zh;q=0.8".parse().unwrap());
+        let h = Self::default_headers();
         builder = builder.default_headers(h);
         builder = builder.gzip(true);
         builder = builder.brotli(true);

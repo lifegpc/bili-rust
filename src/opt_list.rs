@@ -24,12 +24,14 @@ pub fn get_opt_list() -> Vec<OptDes> {
         OptDes::new("list-providers-only", None, gettext("List only providers name when print help message"), false, false, None).unwrap(),
         OptDes::new("login", None, gettext("If not logined, force to login."), false, false, None).unwrap(),
         OptDes::new("version", Some("V"), gettext("Print version of bili"), false, false, None).unwrap(),
+        OptDes::new("aria2c", None, gettext("Whether to enable arai2c."), true, true, Some("boolean")).unwrap(),
     ]
 }
 
 pub fn get_settings_list() -> Vec<SettingDes> {
     vec![
         SettingDes::new("cookies", gettext("The location of cookies file. Default: \"bili.cookies.json\" in executable's path."), JsonValueType::Str, None).unwrap(),
+        SettingDes::new("aria2c", gettext("Whether to enable arai2c."), JsonValueType::Boolean, None).unwrap(),
     ]
 }
 

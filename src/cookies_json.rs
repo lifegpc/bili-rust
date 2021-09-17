@@ -9,6 +9,7 @@ use json::object;
 use json::JsonValue;
 use std::clone::Clone;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::fs::remove_file;
 use std::fs::File;
 use std::io::Read;
@@ -260,6 +261,12 @@ impl Clone for CookiesJar {
         CookiesJar {
             cookies: self.cookies.clone(),
         }
+    }
+}
+
+impl Debug for CookiesJar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.cookies.fmt(f)
     }
 }
 

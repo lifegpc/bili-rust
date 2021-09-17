@@ -1,7 +1,10 @@
 extern crate chrono;
+extern crate reqwest;
 
+use crate::cookies_json::CookiesJar;
 use chrono::DateTime;
 use chrono::Utc;
+use reqwest::header::HeaderMap;
 use std::clone::Clone;
 use std::collections::HashMap;
 use std::default::Default;
@@ -138,6 +141,10 @@ pub struct VideoInfo {
     /// The playback url of video.
     /// Used when `typ` is [`VideoPlayInfoType::SignleUrl`](enum.VideoPlayInfoType.html#variant.SignleUrl)
     pub url: Option<String>,
+    /// HTTP Headers
+    pub headers: Option<HeaderMap>,
+    /// Cookies
+    pub cookies: Option<CookiesJar>,
 }
 
 impl VideoInfo {
@@ -159,6 +166,8 @@ impl Clone for VideoInfo {
             cover: self.cover.clone(),
             typ: self.typ.clone(),
             url: self.url.clone(),
+            headers: self.headers.clone(),
+            cookies: self.cookies.clone(),
         }
     }
 }
@@ -170,6 +179,8 @@ impl Default for VideoInfo {
             cover: None,
             typ: VideoPlayInfoType::SignleUrl,
             url: None,
+            headers: None,
+            cookies: None,
         }
     }
 }
