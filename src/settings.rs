@@ -2,8 +2,8 @@ extern crate json;
 
 use crate::i18n::gettext;
 use crate::opt_list::get_settings_list;
-use crate::path::get_exe_path;
-use crate::path::path_to_str;
+use crate::utils::path::get_exe_path;
+use crate::utils::path::path_to_str;
 use json::JsonValue;
 use std::clone::Clone;
 use std::collections::HashMap;

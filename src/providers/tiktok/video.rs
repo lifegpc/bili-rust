@@ -6,7 +6,7 @@ extern crate regex;
 use crate::cookies_json::CookiesJar;
 use crate::getopt::OptStore;
 use crate::i18n::gettext;
-use crate::json_util::jv_multikey_value;
+use crate::utils::json::jv_multikey_value;
 use crate::metadata::ExtractInfo;
 use crate::metadata::InfoType;
 use crate::metadata::VideoInfo;

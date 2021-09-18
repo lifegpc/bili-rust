@@ -2,6 +2,7 @@ extern crate subprocess;
 
 use core::time::Duration;
 use std::clone::Clone;
+use std::collections::HashMap;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 use subprocess::Redirection;
@@ -26,6 +27,10 @@ pub fn test_aria2c(p: &str) -> bool {
         }
     }
     let mut r = r.unwrap();
+    match r.communicate(Some("")) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
     let re = r.wait_timeout(Duration::new(5, 0));
     match re {
         Ok(_) => {}
@@ -52,6 +57,8 @@ pub fn test_aria2c(p: &str) -> bool {
 pub struct Aria2c {
     /// Executable path
     exe: String,
+    /// HTTP Headers
+    pub headers: HashMap<String, String>,
 }
 
 impl Aria2c {
@@ -68,6 +75,7 @@ impl Aria2c {
         }
         Some(Self {
             exe: String::from(e),
+            headers: HashMap::new(),
         })
     }
 }
@@ -76,6 +84,7 @@ impl Clone for Aria2c {
     fn clone(&self) -> Self {
         Self {
             exe: self.exe.clone(),
+            headers: self.headers.clone(),
         }
     }
 }

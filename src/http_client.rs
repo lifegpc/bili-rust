@@ -14,6 +14,62 @@ use reqwest::Response;
 use std::clone::Clone;
 use std::collections::HashMap;
 
+/// Generate `cookie` header for a url
+/// * `c` - Cookies
+/// * `url` - URL
+pub fn gen_cookie_header<U: IntoUrl>(c: &CookiesJar, url: U) -> String {
+    let mut h: HashMap<String, String> = HashMap::new();
+    let mut domain: Option<String> = None;
+    let u = url.into_url().unwrap();
+    match u.host_str() {
+        Some(hs) => {
+            domain = Some(String::from(hs));
+        }
+        None => {}
+    }
+    let upath = u.path();
+    for (_, val) in c.iter() {
+        match val.domain() {
+            Some(dm) => match &domain {
+                Some(url_dm) => {
+                    if !dm.starts_with(".") {
+                        if url_dm != dm {
+                            continue;
+                        }
+                    } else {
+                        let dmm = dm.strip_prefix(".").unwrap();
+                        if !url_dm.ends_with(dmm) {
+                            continue;
+                        }
+                    }
+                }
+                None => {
+                    continue;
+                }
+            },
+            None => {}
+        }
+        match val.path() {
+            Some(pt) => {
+                if !upath.starts_with(pt) {
+                    continue;
+                }
+            }
+            None => {}
+        }
+        h.insert(String::from(val.name()), String::from(val.value()));
+    }
+    let mut cs = String::from("");
+    for (k, v) in h.iter() {
+        let s = format!("{}={}", k, v);
+        if cs.len() > 0 {
+            cs += "; ";
+        }
+        cs += s.as_str();
+    }
+    return cs;
+}
+
 /// A HTTP Client which support send Cookie
 pub struct CookieClient {
     /// HTTP Client
@@ -39,61 +95,6 @@ impl CookieClient {
 
     pub fn enable_set_cookie(&mut self) {
         self.set_cookie = true;
-    }
-
-    /// Generate `cookie` header for a url
-    /// * `url` - URL
-    pub fn gen_cookie_header<U: IntoUrl>(&self, url: U) -> String {
-        let mut h: HashMap<String, String> = HashMap::new();
-        let mut domain: Option<String> = None;
-        let u = url.into_url().unwrap();
-        match u.host_str() {
-            Some(hs) => {
-                domain = Some(String::from(hs));
-            }
-            None => {}
-        }
-        let upath = u.path();
-        for (_, val) in self.jar.iter() {
-            match val.domain() {
-                Some(dm) => match &domain {
-                    Some(url_dm) => {
-                        if !dm.starts_with(".") {
-                            if url_dm != dm {
-                                continue;
-                            }
-                        } else {
-                            let dmm = dm.strip_prefix(".").unwrap();
-                            if !url_dm.ends_with(dmm) {
-                                continue;
-                            }
-                        }
-                    }
-                    None => {
-                        continue;
-                    }
-                },
-                None => {}
-            }
-            match val.path() {
-                Some(pt) => {
-                    if !upath.starts_with(pt) {
-                        continue;
-                    }
-                }
-                None => {}
-            }
-            h.insert(String::from(val.name()), String::from(val.value()));
-        }
-        let mut cs = String::from("");
-        for (k, v) in h.iter() {
-            let s = format!("{}={}", k, v);
-            if cs.len() > 0 {
-                cs += "; ";
-            }
-            cs += s.as_str();
-        }
-        return cs;
     }
 
     pub fn get_cookie_jar(&self) -> &CookiesJar {
@@ -228,7 +229,7 @@ impl CookieClient {
     pub fn aget<U: IntoUrl>(&self, url: U) -> RequestBuilder {
         let s = url.as_str();
         let mut r = self.client.get(s);
-        let cs = self.gen_cookie_header(url);
+        let cs = gen_cookie_header(&self.jar, url);
         r = r.header("Cookie", cs);
         r
     }
