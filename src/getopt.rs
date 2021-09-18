@@ -458,6 +458,27 @@ impl OptStore {
         r
     }
 
+    /// Get option's argument and convert it to `usize`
+    /// * `key` - Option's name
+    /// # Notes
+    /// If an option not found, will retrun `None`. If option's value is not vaild, will panic.
+    /// # Panic
+    /// When an option's value is not valid, will panic.
+    pub fn get_option_as_usize(&self, key: &str) -> Option<usize> {
+        let c = self.get_option(key);
+        if c.is_none() {
+            return None;
+        }
+        let r = c.unwrap().as_str().parse::<usize>();
+        match r {
+            Ok(r) => Some(r),
+            Err(_) => {
+                let s = gettext("The value of option \"<key>\" should be a positive interger or 0. For example: 1, 0.").replace("<key>", key);
+                panic!("{}", s);
+            }
+        }
+    }
+
     /// Get a description struct by using option's short name
     /// * `key` - Option's short name
     pub fn get_des_by_short_name(&self, key: &str) -> Option<OptDes> {

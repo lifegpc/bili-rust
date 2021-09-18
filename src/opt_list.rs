@@ -1,4 +1,5 @@
 use crate::downloader::aria2c::check_min_split_size;
+use crate::downloader::aria2c::check_split;
 use crate::getopt::OptDes;
 use crate::settings::JsonValueType;
 use crate::settings::SettingDes;
@@ -18,6 +19,7 @@ pub fn get_opt_list() -> Vec<OptDes> {
     vec![
         OptDes::new("aria2c", None, gettext("Whether to enable arai2c."), true, true, Some("boolean")).unwrap(),
         OptDes::new("aria2c-min-split-size", None, gettext("Let aria2 does not split less than 2*SIZE byte range."), true, true, Some("SIZE")).unwrap(),
+        OptDes::new("aria2c-split", None, gettext("The number of connections used when downloading a file."), true, true, Some("N")).unwrap(),
         OptDes::new("config", Some("c"), gettext("The location of settings file. Default: bili.settings.json"), true, true, Some("path")).unwrap(),
         OptDes::new("cookies", None, gettext("The location of cookies file. Default: \"bili.cookies.json\" in executable's path."), true, true, Some("path")).unwrap(),
         OptDes::new("cookie-jar", Some("j"), gettext("The name of cookie jar which cookies will be stored."), true, true, Some("name")).unwrap(),
@@ -34,6 +36,7 @@ pub fn get_settings_list() -> Vec<SettingDes> {
     vec![
         SettingDes::new("aria2c", gettext("Whether to enable arai2c."), JsonValueType::Boolean, None).unwrap(),
         SettingDes::new("aria2c-min-split-size", gettext("Let aria2 does not split less than 2*SIZE byte range."), JsonValueType::Multiple, Some(check_min_split_size)).unwrap(),
+        SettingDes::new("aria2c-split", gettext("The number of connections used when downloading a file."), JsonValueType::Multiple, Some(check_split)).unwrap(),
         SettingDes::new("cookies", gettext("The location of cookies file. Default: \"bili.cookies.json\" in executable's path."), JsonValueType::Str, None).unwrap(),
     ]
 }

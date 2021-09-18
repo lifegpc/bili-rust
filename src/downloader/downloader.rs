@@ -61,8 +61,7 @@ impl MDownloader {
                         gettext("aria2c-min-split-size should be 1048576(1MiB)-1073741824(1GiB).")
                     );
                 }
-            }
-            if r2.is_some() {
+            } else if r2.is_some() {
                 if !t
                     .a2
                     .as_mut()
@@ -73,6 +72,25 @@ impl MDownloader {
                         "{}{}",
                         gettext("Can not set settings: "),
                         gettext("aria2c-min-split-size should be 1048576(1MiB)-1073741824(1GiB).")
+                    );
+                }
+            }
+            let r = t.opt.get_option_as_usize("aria2c-split");
+            let r2 = t.se.get_settings("basic", "aria2c-split");
+            if r.is_some() {
+                if !t.a2.as_mut().unwrap().set_split(r.as_ref().unwrap()) {
+                    panic!(
+                        "{}{}",
+                        gettext("Can not set settings: "),
+                        gettext("aria2c-split should be 1-*.")
+                    );
+                }
+            } else if r2.is_some() {
+                if !t.a2.as_mut().unwrap().set_split(r2.as_ref().unwrap()) {
+                    panic!(
+                        "{}{}",
+                        gettext("Can not set settings: "),
+                        gettext("aria2c-split should be 1-*.")
                     );
                 }
             }
