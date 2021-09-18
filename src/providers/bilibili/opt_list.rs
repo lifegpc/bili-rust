@@ -7,7 +7,7 @@ use crate::settings::JsonValueType;
 use crate::settings::SettingDes;
 use json::JsonValue;
 
-fn check_part(value: JsonValue) -> bool {
+fn check_part(value: &JsonValue) -> bool {
     let re = PartList::parse_from_json(value);
     match re {
         Some(_) => true,

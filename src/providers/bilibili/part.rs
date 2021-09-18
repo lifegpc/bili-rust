@@ -108,7 +108,7 @@ impl PartList {
         PartList { list: [].to_vec() }
     }
 
-    pub fn parse_from_json(v: JsonValue) -> Option<PartList> {
+    pub fn parse_from_json(v: &JsonValue) -> Option<PartList> {
         let mut pi = PartList::new();
         if v.is_string() {
             return PartList::parse_from_str(v.as_str().unwrap());
@@ -220,17 +220,17 @@ fn test_part_list_parse_from_json() {
             Part::new(1, 33).unwrap(),
             Part::new(38, 38).unwrap()
         ])),
-        PartList::parse_from_json(json::parse("\"1-33, 38\"").unwrap())
+        PartList::parse_from_json(&json::parse("\"1-33, 38\"").unwrap())
     );
     assert_eq!(
         Some(PartList::from(vec![Part::new(4, 4).unwrap()])),
-        PartList::parse_from_json(json::parse("4").unwrap())
+        PartList::parse_from_json(&json::parse("4").unwrap())
     );
     assert_eq!(
         Some(PartList::from(vec![
             Part::new(3, 3).unwrap(),
             Part::new(5, 0).unwrap()
         ])),
-        PartList::parse_from_json(json::parse("[3, \"5-\"]").unwrap())
+        PartList::parse_from_json(&json::parse("[3, \"5-\"]").unwrap())
     )
 }

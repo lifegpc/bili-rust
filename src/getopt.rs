@@ -1,5 +1,6 @@
 use crate::i18n::gettext;
 use crate::opt_list::get_opt_list;
+use crate::utils::size::parse_size;
 use std::clone::Clone;
 use std::collections::HashMap;
 use std::convert::From;
@@ -436,6 +437,25 @@ impl OptStore {
         }
         let s = gettext("The value of option \"<key>\" should be a boolean or number. For example: true, 1, false, 0.").replace("<key>", key);
         panic!("{}", s)
+    }
+
+    /// Get option's argument and convert it to bytes by using [`parse_size`](../utils/size/fn.parse_size.html)
+    /// * `key` - Option's name
+    /// # Notes
+    /// If an option not found, will retrun `None`. If option's value is not vaild, will panic.
+    /// # Panic
+    /// When an option's value is not valid, will panic.
+    pub fn get_option_as_size(&self, key: &str) -> Option<usize> {
+        let c = self.get_option(key);
+        if c.is_none() {
+            return None;
+        }
+        let r = parse_size(c.unwrap().as_str());
+        if r.is_none() {
+            let s = gettext("The value of option \"<key>\" should be a vaild size. For example: 1, 2B, 300K, 78Mi, 900GiB.").replace("<key>", key);
+            panic!("{}", s);
+        }
+        r
     }
 
     /// Get a description struct by using option's short name

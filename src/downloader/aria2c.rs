@@ -1,5 +1,6 @@
 extern crate subprocess;
 
+use crate::utils::size::ToSize;
 use core::time::Duration;
 use std::clone::Clone;
 use std::collections::HashMap;
@@ -53,12 +54,29 @@ pub fn test_aria2c(p: &str) -> bool {
     false
 }
 
+/// Check aria2c settings.
+/// * `inp` - Input object
+pub fn check_min_split_size(inp: &impl ToSize) -> bool {
+    let r = inp.to_size();
+    if r.is_none() {
+        return false;
+    }
+    let r = r.unwrap();
+    if r >= 1048576 && r <= 1073741824 {
+        true
+    } else {
+        false
+    }
+}
+
 /// Aria2c interface
 pub struct Aria2c {
     /// Executable path
     exe: String,
     /// HTTP Headers
     pub headers: HashMap<String, String>,
+    /// Aria2c settings: aria2 does not split less than 2*SIZE byte range.
+    min_split_size: usize,
 }
 
 impl Aria2c {
@@ -76,7 +94,24 @@ impl Aria2c {
         Some(Self {
             exe: String::from(e),
             headers: HashMap::new(),
+            min_split_size: 20971520,
         })
+    }
+
+    /// Set settings.
+    /// * `inp` - Input object
+    pub fn set_min_split_size(&mut self, inp: &impl ToSize) -> bool {
+        let s = inp.to_size();
+        if s.is_none() {
+            return false;
+        }
+        let s = s.unwrap();
+        if s >= 1048576 && s <= 1073741824 {
+            self.min_split_size = s;
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -85,6 +120,7 @@ impl Clone for Aria2c {
         Self {
             exe: self.exe.clone(),
             headers: self.headers.clone(),
+            min_split_size: self.min_split_size.clone(),
         }
     }
 }

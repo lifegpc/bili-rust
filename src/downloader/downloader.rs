@@ -39,7 +39,9 @@ pub struct MDownloader {
 }
 
 impl MDownloader {
-    /// Create a new downloader interfaces
+    /// Create a new downloader
+    /// # Panic
+    /// If some settings not available, will be panic
     pub fn new(se: &SettingStore, opt: &OptStore, ei: &ExtractInfo) -> Self {
         let mut t = Self {
             se: se.clone(),
@@ -49,6 +51,31 @@ impl MDownloader {
         };
         if t.enable_arai2c() {
             t.a2 = Aria2c::new(None);
+            let r = t.opt.get_option_as_size("aria2c-min-split-size");
+            let r2 = t.se.get_settings("basic", "aria2c-min-split-size");
+            if r.is_some() {
+                if !t.a2.as_mut().unwrap().set_min_split_size(&r.unwrap()) {
+                    panic!(
+                        "{}{}",
+                        gettext("Can not set settings: "),
+                        gettext("aria2c-min-split-size should be 1048576(1MiB)-1073741824(1GiB).")
+                    );
+                }
+            }
+            if r2.is_some() {
+                if !t
+                    .a2
+                    .as_mut()
+                    .unwrap()
+                    .set_min_split_size(r2.as_ref().unwrap())
+                {
+                    panic!(
+                        "{}{}",
+                        gettext("Can not set settings: "),
+                        gettext("aria2c-min-split-size should be 1048576(1MiB)-1073741824(1GiB).")
+                    );
+                }
+            }
         }
         t
     }
@@ -76,7 +103,12 @@ impl MDownloader {
     /// * `vi` - Video information
     fn match_vi(&self, vi: &VideoInfo) -> bool {
         if SignleUrlDownloader::match_vi(vi) {
-            return self.download(&mut SignleUrlDownloader::new(vi, &self.opt, &self.se, self.a2.as_ref()));
+            return self.download(&mut SignleUrlDownloader::new(
+                vi,
+                &self.opt,
+                &self.se,
+                self.a2.as_ref(),
+            ));
         }
         println!("{}", gettext("Can not find a suitable video downloader"));
         false

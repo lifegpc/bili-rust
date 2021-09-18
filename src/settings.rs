@@ -24,7 +24,7 @@ pub enum JsonValueType {
     Multiple,
 }
 
-pub type SettingDesCallback = fn(JsonValue) -> bool;
+pub type SettingDesCallback = fn(obj: &JsonValue) -> bool;
 
 pub struct SettingDes {
     _name: String,
@@ -43,7 +43,7 @@ impl SettingDes {
         if (typ == JsonValueType::Array
             || typ == JsonValueType::Object
             || typ == JsonValueType::Multiple)
-            && callback == None
+            && callback.is_none()
         {
             return None;
         }
@@ -79,22 +79,22 @@ impl SettingDes {
         }
     }
 
-    pub fn is_vaild_value(&self, value: JsonValue) -> bool {
+    pub fn is_vaild_value(&self, value: &JsonValue) -> bool {
         if self._type == JsonValueType::Array {
             if value.is_array() {
-                return self._fun.unwrap()(value);
+                return self._fun.unwrap()(&value);
             }
         } else if self._type == JsonValueType::Boolean {
             if value.is_boolean() {
                 return true;
             }
         } else if self._type == JsonValueType::Multiple {
-            return self._fun.unwrap()(value);
+            return self._fun.unwrap()(&value);
         } else if self._type == JsonValueType::Number {
             if value.is_number() {
                 match self._fun {
                     Some(fun) => {
-                        return fun(value);
+                        return fun(&value);
                     }
                     None => {
                         return true;
@@ -103,13 +103,13 @@ impl SettingDes {
             }
         } else if self._type == JsonValueType::Object {
             if value.is_object() {
-                return self._fun.unwrap()(value);
+                return self._fun.unwrap()(&value);
             }
         } else if self._type == JsonValueType::Str {
             if value.is_string() {
                 match self._fun {
                     Some(fun) => {
-                        return fun(value);
+                        return fun(&value);
                     }
                     None => {
                         return true;
@@ -144,7 +144,7 @@ impl SettingDesStore {
     pub fn check_valid(&self, key: &str, value: JsonValue) -> Option<bool> {
         for i in self.list.iter() {
             if i.name() == key {
-                return Some(i.is_vaild_value(value));
+                return Some(i.is_vaild_value(&value));
             }
         }
         None
