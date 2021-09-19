@@ -77,8 +77,8 @@ pub fn test_aria2c(p: &str) -> bool {
     }
     let mut r = r.unwrap();
     match r.communicate(Some("")) {
-        Ok(_) => {},
-        Err(_) => {},
+        Ok(_) => {}
+        Err(_) => {}
     }
     let re = r.wait_timeout(Duration::new(5, 0));
     match re {
@@ -145,6 +145,21 @@ pub fn check_file_allocation<U: ToStr>(inp: &U) -> bool {
     }
 }
 
+/// Check aria2c settings.
+/// * `inp` - Input object
+pub fn check_max_connection_per_server<U: ToUsize>(inp: &U) -> bool {
+    let r = inp.to_usize();
+    if r.is_none() {
+        return false;
+    }
+    let r = r.unwrap();
+    if r >= 1 {
+        true
+    } else {
+        false
+    }
+}
+
 /// Aria2c interface
 pub struct Aria2c {
     /// Executable path
@@ -157,6 +172,8 @@ pub struct Aria2c {
     split: usize,
     /// Aria2c settings: file allocation method
     file_allocation: Aria2cFileAllocation,
+    /// Aria2c settings: the maximum number of connections to one server for each download
+    max_connection_per_server: usize,
 }
 
 impl Aria2c {
@@ -177,6 +194,7 @@ impl Aria2c {
             min_split_size: 20971520,
             split: 5,
             file_allocation: Aria2cFileAllocation::Prealloc,
+            max_connection_per_server: 1,
         })
     }
 
@@ -192,8 +210,24 @@ impl Aria2c {
             Ok(r) => {
                 self.file_allocation = r;
                 true
-            },
+            }
             Err(_) => false,
+        }
+    }
+
+    /// Set settings.
+    /// * `inp` - Input object
+    pub fn set_max_connection_per_server<U: ToUsize>(&mut self, inp: &U) -> bool {
+        let s = inp.to_usize();
+        if s.is_none() {
+            return false;
+        }
+        let s = s.unwrap();
+        if s >= 1 {
+            self.max_connection_per_server = s;
+            true
+        } else {
+            false
         }
     }
 
@@ -238,6 +272,7 @@ impl Clone for Aria2c {
             min_split_size: self.min_split_size.clone(),
             split: self.split.clone(),
             file_allocation: self.file_allocation.clone(),
+            max_connection_per_server: self.max_connection_per_server.clone(),
         }
     }
 }

@@ -116,6 +116,39 @@ impl MDownloader {
                     panic!("{}{}", gettext("Can not set settings: "), gettext("The possible value of aria2c-file-allocation are none, prealloc, trunc, falloc."));
                 }
             }
+            let r = t
+                .opt
+                .get_option_as_usize("aria2c-max-connection-per-server");
+            let r2 =
+                t.se.get_settings("basic", "aria2c-max-connection-per-server");
+            if r.is_some() {
+                if !t
+                    .a2
+                    .as_mut()
+                    .unwrap()
+                    .set_max_connection_per_server(r.as_ref().unwrap())
+                {
+                    panic!(
+                        "{}{}",
+                        gettext("Can not set settings: "),
+                        gettext("aria2c-max-connection-per-server should be 1-*.")
+                    );
+                }
+            }
+            if r2.is_some() {
+                if !t
+                    .a2
+                    .as_mut()
+                    .unwrap()
+                    .set_max_connection_per_server(r2.as_ref().unwrap())
+                {
+                    panic!(
+                        "{}{}",
+                        gettext("Can not set settings: "),
+                        gettext("aria2c-max-connection-per-server should be 1-*.")
+                    );
+                }
+            }
         }
         t
     }
