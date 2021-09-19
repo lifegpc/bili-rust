@@ -228,6 +228,8 @@ impl Aria2c {
             li.push(self.output.as_ref().unwrap().clone());
         }
         li.push(String::from(url.as_str()));
+        li.push(String::from("--auto-file-renaming"));
+        li.push(String::from("false"));
         println!("{:?}", &li);
         let r = Popen::create(&li, PopenConfig::default());
         match r {
