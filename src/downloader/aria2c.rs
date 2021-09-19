@@ -1,13 +1,60 @@
 extern crate subprocess;
 
+use crate::utils::convert::ToStr;
 use crate::utils::number::ToUsize;
 use crate::utils::size::ToSize;
 use core::time::Duration;
 use std::clone::Clone;
 use std::collections::HashMap;
+use std::convert::Into;
+use std::convert::TryFrom;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 use subprocess::Redirection;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// Aria2c file allocation method
+pub enum Aria2cFileAllocation {
+    None,
+    Prealloc,
+    Trunc,
+    Falloc,
+}
+
+impl Into<&'static str> for Aria2cFileAllocation {
+    fn into(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Prealloc => "prealloc",
+            Self::Trunc => "trunc",
+            Self::Falloc => "falloc",
+        }
+    }
+}
+
+impl ToStr for Aria2cFileAllocation {
+    fn to_str(&self) -> Option<&str> {
+        Some(self.clone().into())
+    }
+}
+
+impl TryFrom<&str> for Aria2cFileAllocation {
+    type Error = &'static str;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let v = value.to_lowercase();
+        if v == "none" {
+            Ok(Self::None)
+        } else if v == "prealloc" {
+            Ok(Self::Prealloc)
+        } else if v == "trunc" {
+            Ok(Self::Trunc)
+        } else if v == "falloc" {
+            Ok(Self::Falloc)
+        } else {
+            Err("Unknown type")
+        }
+    }
+}
 
 /// Test aria2c whether to works
 /// * `p` - The path of aria2c
@@ -85,6 +132,19 @@ pub fn check_split<U: ToUsize>(inp: &U) -> bool {
     }
 }
 
+/// Check aria2c settings.
+/// * `inp` - Input object
+pub fn check_file_allocation<U: ToStr>(inp: &U) -> bool {
+    let i = inp.to_str();
+    if i.is_none() {
+        return false;
+    }
+    match Aria2cFileAllocation::try_from(i.unwrap()) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
 /// Aria2c interface
 pub struct Aria2c {
     /// Executable path
@@ -95,6 +155,8 @@ pub struct Aria2c {
     min_split_size: usize,
     /// Aria2c settings: the number of connections used when downloading a file.
     split: usize,
+    /// Aria2c settings: file allocation method
+    file_allocation: Aria2cFileAllocation,
 }
 
 impl Aria2c {
@@ -114,7 +176,25 @@ impl Aria2c {
             headers: HashMap::new(),
             min_split_size: 20971520,
             split: 5,
+            file_allocation: Aria2cFileAllocation::Prealloc,
         })
+    }
+
+    /// Set settings.
+    /// * `inp` - Input object
+    pub fn set_file_allocation<U: ToStr>(&mut self, inp: &U) -> bool {
+        let s = inp.to_str();
+        if s.is_none() {
+            return false;
+        }
+        let r = Aria2cFileAllocation::try_from(s.unwrap());
+        match r {
+            Ok(r) => {
+                self.file_allocation = r;
+                true
+            },
+            Err(_) => false,
+        }
     }
 
     /// Set settings.
@@ -157,6 +237,7 @@ impl Clone for Aria2c {
             headers: self.headers.clone(),
             min_split_size: self.min_split_size.clone(),
             split: self.split.clone(),
+            file_allocation: self.file_allocation.clone(),
         }
     }
 }

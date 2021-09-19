@@ -94,6 +94,28 @@ impl MDownloader {
                     );
                 }
             }
+            let r = t.opt.get_option("aria2c-file-allocation");
+            let r2 = t.se.get_settings("basic", "aria2c-file-allocation");
+            if r.is_some() {
+                if !t
+                    .a2
+                    .as_mut()
+                    .unwrap()
+                    .set_file_allocation(r.as_ref().unwrap())
+                {
+                    panic!("{}{}", gettext("Can not set settings: "), gettext("The possible value of aria2c-file-allocation are none, prealloc, trunc, falloc."));
+                }
+            }
+            if r2.is_some() {
+                if !t
+                    .a2
+                    .as_mut()
+                    .unwrap()
+                    .set_file_allocation(r2.as_ref().unwrap())
+                {
+                    panic!("{}{}", gettext("Can not set settings: "), gettext("The possible value of aria2c-file-allocation are none, prealloc, trunc, falloc."));
+                }
+            }
         }
         t
     }
