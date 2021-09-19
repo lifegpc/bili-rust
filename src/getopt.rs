@@ -7,14 +7,16 @@ use std::convert::From;
 use std::default::Default;
 
 /// The config command type parsed from command line
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConfigCommand {
     Add,
+    Delete,
     Fix,
     Get,
     Set,
 }
 
+#[derive(Debug)]
 /// Config command type and arguments
 pub struct ConfigCommandResult {
     /// config command type
@@ -56,12 +58,12 @@ impl OptDes {
     /// * `has_value` - Can this option have an argument
     /// * `need_value` - Should this option must have an argument
     /// * `value_display_name` - Display name in print help message (This argument should be None when `has_value` is false, and must have a value when `has_value` is true)
-    /// 
+    ///
     /// # Examples
     /// ```
     /// let opt = OptDes::new("help", Some("h"), "Print help message", true, false, Some("type"));
     /// ```
-    /// 
+    ///
     /// When printing help message, it will output something like this: `-h  --help [type] Print help message`
     pub fn new(
         name: &str,
@@ -530,6 +532,13 @@ impl OptStore {
                 return Some(ConfigCommandResult::new(
                     ConfigCommand::Add,
                     self.args[self.ind - 3..self.ind].to_vec(),
+                ));
+            }
+            if s == "delete" && self.args.len() >= self.ind + 2 {
+                self.ind += 2;
+                return Some(ConfigCommandResult::new(
+                    ConfigCommand::Delete,
+                    self.args[self.ind - 2..self.ind].to_vec(),
                 ));
             }
             if s == "fix" {

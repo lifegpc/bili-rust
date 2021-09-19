@@ -59,6 +59,10 @@ impl Main {
             gettext("Add entry to settings file.")
         );
         println!(
+            "bili config delete <provider> <key> [Options] {}",
+            gettext("Delete an entry from settings file.")
+        );
+        println!(
             "bili config fix [options] {}",
             gettext("Fix broken settings file.")
         );
@@ -264,6 +268,26 @@ impl Main {
                 return 1;
             }
             return 0;
+        }
+        if cmd.typ == ConfigCommand::Delete {
+            let re = self.se.get_settings(cmd.list[0].as_str(), cmd.list[1].as_str());
+            match re {
+                Some(_) => {
+                    if self.se.delete(cmd.list[0].as_str(), cmd.list[1].as_str()) {
+                        if self.se.save(self.opt.get_option("config")) {
+                            return 0;
+                        }
+                        println!("{}", gettext("Can not save settings."));
+                        return 1;
+                    }
+                    println!("{}", gettext("Key not found"));
+                    return 1;
+                },
+                None => {
+                    println!("{}", gettext("Key not found."));
+                    return 1;
+                }
+            }
         }
         if cmd.typ == ConfigCommand::Fix {
             if !self.se.save(self.opt.get_option("config")) {

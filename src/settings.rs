@@ -189,6 +189,7 @@ impl Default for SettingDesStore {
     }
 }
 
+#[derive(Debug)]
 pub struct SettingOpt {
     _name: String,
     _value: JsonValue,
@@ -220,6 +221,7 @@ impl Clone for SettingOpt {
     }
 }
 
+#[derive(Debug)]
 pub struct SettingJar {
     pub settings: HashMap<String, SettingOpt>,
 }
@@ -377,6 +379,21 @@ impl SettingStore {
             return i.check_valid(key_in_map, value);
         }
         None
+    }
+
+    pub fn delete(&mut self, map_key: &str, key: &str) -> bool {
+        if self.maps.contains_key(map_key) {
+            let map = self.maps.get_mut(map_key).unwrap();
+            if map.settings.contains_key(key) {
+                map.settings.remove(key);
+                if map.settings.is_empty() {
+                    self.maps.remove(map_key);
+                }
+                return true;
+            }
+            return false;
+        }
+        false
     }
 
     pub fn get_des_dependence(&self, key: &str) -> Option<Vec<String>> {
