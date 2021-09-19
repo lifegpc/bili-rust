@@ -49,9 +49,14 @@ impl Downloader for SignleUrlDownloader {
             if self.vi.cookies.is_some() {
                 let c = gen_cookie_header(self.vi.cookies.as_ref().unwrap(), url);
                 if c.len() > 0 {
-                    a2.headers.insert(String::from("Cookie"), c);
+                    a2.headers.insert(String::from("cookie"), c);
                 }
             }
+            if self.vi.meta.title.is_some() {
+                let output = self.vi.meta.title.as_ref().unwrap().clone() + ".mp4";
+                a2.set_output(Some(output).as_ref());
+            }
+            a2.download(url);
         }
         false
     }

@@ -1,6 +1,14 @@
+extern crate regex;
+
+use crate::utils::convert::ToStr;
+use regex::Regex;
 use std::env;
 use std::path::Path;
 use std::path::PathBuf;
+
+lazy_static! {
+    static ref RE: Regex = Regex::new(r"[[:cntrl:]]").unwrap();
+}
 
 /// Get executable location, if not found, return None
 pub fn get_exe_path() -> Option<PathBuf> {
@@ -39,4 +47,30 @@ pub fn path_to_str(p: &Path) -> &str {
         Some(n) => n,
         None => "<Convert Error>",
     }
+}
+
+pub fn filter_file_name<U: ToStr>(f: &U) -> Option<String> {
+    let s = f.to_str();
+    if s.is_none() {
+        return None;
+    }
+    let s = s.unwrap();
+    let s = RE
+        .replace_all(s, "_")
+        .into_owned()
+        .replace("\\", "_")
+        .replace("/", "_")
+        .replace(":", "_")
+        .replace("*", "_")
+        .replace("?", "_")
+        .replace("\"", "_")
+        .replace("<", "_")
+        .replace(">", "_")
+        .replace("|", "_");
+    Some(s)
+}
+
+#[test]
+fn test_filter_file_name() {
+    assert_eq!(Some(String::from("T_NM_WTF_A_❤测试")), filter_file_name(&"T\tNM\rWTF?A<❤测试"));
 }

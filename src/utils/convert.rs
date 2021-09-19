@@ -13,7 +13,7 @@ impl ToStr for String {
     }
 }
 
-impl ToStr for str {
+impl ToStr for &str {
     fn to_str(&self) -> Option<&str> {
         Some(&self.clone())
     }

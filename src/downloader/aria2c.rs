@@ -1,13 +1,17 @@
+extern crate reqwest;
 extern crate subprocess;
 
 use crate::utils::convert::ToStr;
 use crate::utils::number::ToUsize;
+use crate::utils::path::filter_file_name;
 use crate::utils::size::ToSize;
 use core::time::Duration;
+use reqwest::IntoUrl;
 use std::clone::Clone;
 use std::collections::HashMap;
 use std::convert::Into;
 use std::convert::TryFrom;
+use subprocess::ExitStatus;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 use subprocess::Redirection;
@@ -174,6 +178,8 @@ pub struct Aria2c {
     file_allocation: Aria2cFileAllocation,
     /// Aria2c settings: the maximum number of connections to one server for each download
     max_connection_per_server: usize,
+    /// Output file name
+    output: Option<String>,
 }
 
 impl Aria2c {
@@ -195,7 +201,60 @@ impl Aria2c {
             split: 5,
             file_allocation: Aria2cFileAllocation::Prealloc,
             max_connection_per_server: 1,
+            output: None,
         })
+    }
+
+    /// Perfrom download
+    pub fn download<U: IntoUrl>(&mut self, url: &U) -> Option<i32> {
+        let mut li = vec![self.exe.clone()];
+        for (k, v) in &self.headers {
+            let t = format!("--header={}: {}", k, v);
+            li.push(t);
+        }
+        let t = format!("{}", self.min_split_size);
+        li.push(String::from("-k"));
+        li.push(t);
+        let t = format!("{}", self.split);
+        li.push(String::from("-s"));
+        li.push(t);
+        let t = format!("--file-allocation={}", self.file_allocation.to_str().unwrap());
+        li.push(t);
+        let t = format!("{}", self.max_connection_per_server);
+        li.push(String::from("-x"));
+        li.push(t);
+        if self.output.is_some() {
+            li.push(String::from("-o"));
+            li.push(self.output.as_ref().unwrap().clone());
+        }
+        li.push(String::from(url.as_str()));
+        println!("{:?}", &li);
+        let r = Popen::create(&li, PopenConfig::default());
+        match r {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}", e);
+                return None;
+            }
+        }
+        let mut p = r.unwrap();
+        let r = p.wait();
+        match r {
+            Ok(e) => {
+                match e {
+                    ExitStatus::Exited(s) => {
+                        Some(s as i32)
+                    }
+                    _ => {
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                println!("{}", e);
+                None
+            }
+        }
     }
 
     /// Set settings.
@@ -247,6 +306,26 @@ impl Aria2c {
         }
     }
 
+    pub fn set_output<U: ToStr>(&mut self, inp: Option<&U>) -> bool {
+        if inp.is_none() {
+            self.output = None;
+            true
+        } else {
+            let s = inp.unwrap().to_str();
+            if s.is_none() {
+                false
+            } else {
+                let f = filter_file_name(&s.unwrap());
+                if f.is_some() {
+                    self.output = f;
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
     /// Set settings.
     /// * `inp` - Input object
     pub fn set_split<U: ToUsize>(&mut self, inp: &U) -> bool {
@@ -273,6 +352,7 @@ impl Clone for Aria2c {
             split: self.split.clone(),
             file_allocation: self.file_allocation.clone(),
             max_connection_per_server: self.max_connection_per_server.clone(),
+            output: self.output.clone(),
         }
     }
 }

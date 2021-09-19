@@ -248,7 +248,9 @@ impl Provider for TiktokVideoProvider {
         if !self.extract_playinfo(&mut vi) {
             return None;
         }
-        vi.headers = Some(TiktokBaseProvider::default_headers());
+        let mut h = TiktokBaseProvider::default_headers();
+        h.insert("referer", "https://www.tiktok.com/".parse().unwrap());
+        vi.headers = Some(h);
         vi.cookies = Some(self.base.client.as_ref().unwrap().get_cookie_jar().clone());
         let ei = ExtractInfo {
             typ: InfoType::Video,
