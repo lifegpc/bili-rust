@@ -17,6 +17,13 @@ pub fn get_config_opt_list() -> Vec<OptDes> {
     ]
 }
 
+pub fn get_cookie_opt_list() -> Vec<OptDes> {
+    vec![
+        OptDes::new("cookies", Some("c"), gettext("The location of cookies file. Default: \"bili.cookies.json\" in executable's path."), true, true, Some("path")).unwrap(),
+        OptDes::new("help", Some("h"), gettext("Print help message"), false, false, None).unwrap(),
+    ]
+}
+
 pub fn get_opt_list() -> Vec<OptDes> {
     vec![
         OptDes::new("aria2c", None, gettext("Whether to enable arai2c."), true, true, Some("boolean")).unwrap(),

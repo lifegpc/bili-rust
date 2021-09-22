@@ -3,6 +3,7 @@ extern crate thirtyfour;
 extern crate urlencoding;
 
 use crate::i18n::gettext;
+use crate::utils::convert::ToStr;
 use crate::utils::path::get_exe_path;
 use crate::utils::path::path_to_str;
 use json::object;
@@ -164,6 +165,32 @@ impl Cookie {
         Some(r)
     }
 
+    /// Convert from netscape cookie string.
+    /// * `c` - Origin cookie string
+    pub fn from_netscape_cookie<U: ToStr>(c: &U) -> Option<Self> {
+        let s = c.to_str();
+        if s.is_none() {
+            return None;
+        }
+        let s = s.unwrap().trim();
+        let sp = s.split("\t").collect::<Vec<&str>>();
+        if sp.len() != 7 {
+            return None;
+        }
+        let n = sp[5];
+        let v = sp[6];
+        let mut r = Self::new(n, v);
+        let p = sp[2];
+        if p.len() > 0 {
+            r.set_path(Some(p));
+        }
+        let dm = sp[0];
+        if dm.len() > 0 {
+            r.set_domain(Some(dm));
+        }
+        Some(r)
+    }
+
     pub fn to_json(&self) -> Option<JsonValue> {
         let mut obj = object! {
             "name": self._name.as_str(),
@@ -253,6 +280,48 @@ impl CookiesJar {
             }
         }
         Some(arr)
+    }
+
+    /// Load from netscape cookie file
+    /// * `i` - File content
+    pub fn from_netscape_cookie<U: ToStr>(i: &U) -> Option<Self> {
+        let s = i.to_str();
+        if s.is_none() {
+            return None;
+        }
+        let mut j = Self::new();
+        for i in s.unwrap().split("\n") {
+            let i = i.trim();
+            if i.starts_with("#") {
+                continue;
+            }
+            let c = Cookie::from_netscape_cookie(&i);
+            if c.is_none() {
+                return None;
+            }
+            j.add(c.unwrap());
+        }
+        Some(j)
+    }
+
+    /// Load from netscape cookie file
+    /// * `p` - The path to file
+    pub fn from_netscape_cookie_file<P: AsRef<Path>>(p: P) -> Option<Self> {
+        let f = File::open(p);
+        if f.is_err() {
+            println!("{}", f.unwrap_err());
+            return None;
+        }
+        let mut f = f.unwrap();
+        let mut s = String::from("");
+        match f.read_to_string(&mut s) {
+            Ok(_) => {},
+            Err(e) => {
+                println!("{}", e);
+                return None;
+            }
+        }
+        Self::from_netscape_cookie(&s)
     }
 }
 
@@ -647,4 +716,13 @@ fn test_from_set_cookie() {
         Some(c),
         Cookie::from_set_cookie("n=v; Domain=.test.com; Path=/www")
     );
+}
+
+#[test]
+fn test_from_netscape_cookie() {
+    let c = Cookie::from_netscape_cookie(&"a.com\tTRUE\t/\tTRUE\t0\tid\tvalue");
+    let mut c2 = Cookie::new("id", "value");
+    c2.set_domain(Some("a.com"));
+    c2.set_path(Some("/"));
+    assert_eq!(c, Some(c2));
 }

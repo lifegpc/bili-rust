@@ -16,24 +16,30 @@ pub enum ConfigCommand {
     Set,
 }
 
+/// The cookie command type parsed from command line
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CookieCommand {
+    Load,
+}
+
 #[derive(Debug)]
-/// Config command type and arguments
-pub struct ConfigCommandResult {
-    /// config command type
-    pub typ: ConfigCommand,
+/// Command type and arguments
+pub struct CommandResult<T> {
+    /// Command type
+    pub typ: T,
     /// arguments of command
     pub list: Vec<String>,
 }
 
-impl ConfigCommandResult {
-    pub fn new(typ: ConfigCommand, list: Vec<String>) -> ConfigCommandResult {
-        ConfigCommandResult { typ, list }
+impl<T> CommandResult<T> {
+    pub fn new(typ: T, list: Vec<String>) -> Self {
+        Self { typ, list }
     }
 }
 
-impl Clone for ConfigCommandResult {
-    fn clone(&self) -> ConfigCommandResult {
-        ConfigCommandResult {
+impl<T: Clone> Clone for CommandResult<T> {
+    fn clone(&self) -> Self {
+        Self {
             typ: self.typ.clone(),
             list: self.list.clone(),
         }
@@ -518,7 +524,7 @@ impl OptStore {
     }
 
     /// Parse config command, only used in `bili config` command.
-    pub fn parse_config_command(&mut self) -> Option<ConfigCommandResult> {
+    pub fn parse_config_command(&mut self) -> Option<CommandResult<ConfigCommand>> {
         self.ind += 1;
         if self.ind < self.args.len() {
             let s = &self.args[self.ind];
@@ -529,36 +535,57 @@ impl OptStore {
             }
             if s == "add" && self.args.len() >= self.ind + 3 {
                 self.ind += 3;
-                return Some(ConfigCommandResult::new(
+                return Some(CommandResult::new(
                     ConfigCommand::Add,
                     self.args[self.ind - 3..self.ind].to_vec(),
                 ));
             }
             if s == "delete" && self.args.len() >= self.ind + 2 {
                 self.ind += 2;
-                return Some(ConfigCommandResult::new(
+                return Some(CommandResult::new(
                     ConfigCommand::Delete,
                     self.args[self.ind - 2..self.ind].to_vec(),
                 ));
             }
             if s == "fix" {
-                return Some(ConfigCommandResult::new(ConfigCommand::Fix, [].to_vec()));
+                return Some(CommandResult::new(ConfigCommand::Fix, [].to_vec()));
             }
             if s == "get" && self.args.len() >= self.ind + 2 {
                 self.ind += 2;
-                return Some(ConfigCommandResult::new(
+                return Some(CommandResult::new(
                     ConfigCommand::Get,
                     self.args[self.ind - 2..self.ind].to_vec(),
                 ));
             }
             if s == "set" && self.args.len() >= self.ind + 3 {
                 self.ind += 3;
-                return Some(ConfigCommandResult::new(
+                return Some(CommandResult::new(
                     ConfigCommand::Set,
                     self.args[self.ind - 3..self.ind].to_vec(),
                 ));
             }
             self.ind -= 1;
+        }
+        None
+    }
+
+    /// Parse cookie command, only used in `bili cookie` command.
+    pub fn parse_cookie_command(&mut self) -> Option<CommandResult<CookieCommand>> {
+        self.ind += 1;
+        if self.ind < self.args.len() {
+            let s = &self.args[self.ind];
+            self.ind += 1;
+            if s.starts_with("-") {
+                self.ind -= 1;
+                return None;
+            }
+            if s == "load" && self.args.len() >= self.ind + 2 {
+                self.ind += 2;
+                return Some(CommandResult::new(
+                    CookieCommand::Load,
+                    self.args[self.ind - 2..self.ind].to_vec(),
+                ));
+            }
         }
         None
     }

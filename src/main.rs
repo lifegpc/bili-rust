@@ -17,6 +17,7 @@ use cookies_json::CookiesJar;
 use cookies_json::CookiesJson;
 use downloader::downloader::MDownloader;
 use getopt::ConfigCommand;
+use getopt::CookieCommand;
 use getopt::OptStore;
 use i18n::gettext;
 use providers::bilibili::normal_video::BiliNormalVideoProvider;
@@ -55,25 +56,32 @@ impl Main {
 
     fn print_config_basic_usage(&self) {
         println!(
-            "bili config add <provider> <key> <value> [options] {}",
+            "bili config add <provider> <key> <value> [options] \t{}",
             gettext("Add entry to settings file.")
         );
         println!(
-            "bili config delete <provider> <key> [Options] {}",
+            "bili config delete <provider> <key> [Options] \t\t{}",
             gettext("Delete an entry from settings file.")
         );
         println!(
-            "bili config fix [options] {}",
+            "bili config fix [options] \t\t\t\t{}",
             gettext("Fix broken settings file.")
         );
         println!(
-            "bili config get <provider> <key> [options] {}",
+            "bili config get <provider> <key> [options] \t\t{}",
             gettext("Get entry value from settings file.")
         );
         println!(
-            "bili config set <provider> <key> <value> [Options] {}",
+            "bili config set <provider> <key> <value> [Options] \t{}",
             gettext("Set value for an entry.")
         );
+    }
+
+    fn print_cookie_basic_usage(&self) {
+        println!(
+            "bili cookie load <jar_name> <file> [Options] \t{}",
+            gettext("Load cookies from file.")
+        )
     }
 
     fn print_version(&self) {
@@ -97,6 +105,14 @@ impl Main {
                     return 0;
                 }
                 println!("bili <url> [options]");
+                println!(
+                    "bili config -h \t\t\t\t{}",
+                    gettext("Print how to manage config file by using command line.")
+                );
+                println!(
+                    "bili cookie -h \t\t\t\t{}",
+                    gettext("Print how to manage cookies file by using command line.")
+                );
                 let help = self.opt.get_option("help");
                 self.opt.print_help(help, self.opt.has_option("help-deps"));
                 return 0;
@@ -121,6 +137,9 @@ impl Main {
         let url = url.unwrap();
         if url == "config" {
             return self.run_config();
+        }
+        if url == "cookie" {
+            return self.run_cookie();
         }
         self.match_provider(url.as_str())
     }
@@ -270,7 +289,9 @@ impl Main {
             return 0;
         }
         if cmd.typ == ConfigCommand::Delete {
-            let re = self.se.get_settings(cmd.list[0].as_str(), cmd.list[1].as_str());
+            let re = self
+                .se
+                .get_settings(cmd.list[0].as_str(), cmd.list[1].as_str());
             match re {
                 Some(_) => {
                     if self.se.delete(cmd.list[0].as_str(), cmd.list[1].as_str()) {
@@ -282,7 +303,7 @@ impl Main {
                     }
                     println!("{}", gettext("Key not found"));
                     return 1;
-                },
+                }
                 None => {
                     println!("{}", gettext("Key not found."));
                     return 1;
@@ -331,6 +352,53 @@ impl Main {
             return 0;
         }
         return 0;
+    }
+
+    fn run_cookie(&mut self) -> i32 {
+        self.opt = OptStore::new(opt_list::get_cookie_opt_list());
+        let cmd = self.opt.parse_cookie_command();
+        if cmd.is_none() {
+            if !self.opt.parse_options() {
+                return 1;
+            }
+            if self.opt.has_option("help") {
+                self.print_cookie_basic_usage();
+                self.opt.print_help(None, false);
+                return 0;
+            }
+            self.print_cookie_basic_usage();
+            return 1;
+        }
+        let cmd = cmd.unwrap();
+        if !self.opt.parse_options() {
+            return 1;
+        }
+        let mut c = CookiesJson::new();
+        let co = match self.opt.get_option("cookies") {
+            Some(c) => c,
+            None => {
+                let mut p = utils::path::get_exe_path().unwrap();
+                p.push("bili.cookies.json");
+                String::from(p.to_str().unwrap())
+            }
+        };
+        let p = std::path::PathBuf::from(&co);
+        if p.exists() {
+            if !c.read(Some(co.clone())) {
+                return 1;
+            }
+        }
+        if cmd.typ == CookieCommand::Load {
+            let j = CookiesJar::from_netscape_cookie_file(&cmd.list[1]);
+            if j.is_none() {
+                return 1;
+            }
+            c.add(&cmd.list[0], j.unwrap());
+        }
+        if !c.save(Some(co.clone())) {
+            return 1;
+        }
+        0
     }
 }
 
