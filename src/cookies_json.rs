@@ -237,15 +237,18 @@ impl Clone for Cookie {
     }
 }
 
+#[derive(PartialEq)]
 /// Cookies Jar
 pub struct CookiesJar {
     pub cookies: HashMap<String, Cookie>,
+    pub extras: HashMap<String, JsonValue>,
 }
 
 impl CookiesJar {
     pub fn new() -> CookiesJar {
         CookiesJar {
             cookies: HashMap::new(),
+            extras: HashMap::new(),
         }
     }
 
@@ -279,7 +282,135 @@ impl CookiesJar {
                 }
             }
         }
-        Some(arr)
+        if self.extras.len() > 0 {
+            let mut obj = JsonValue::new_object();
+            match obj.insert("cookies", arr) {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("{}", e);
+                    return None;
+                }
+            }
+            let mut ex = JsonValue::new_object();
+            for (k, v) in self.extras.iter() {
+                match ex.insert(k, v.clone()) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("{}", e);
+                        return None;
+                    }
+                }
+            }
+            match obj.insert("extras", ex) {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("{}", e);
+                    return None;
+                }
+            }
+            Some(obj)
+        } else {
+            Some(arr)
+        }
+    }
+
+    /// Parse cookie list from json list
+    /// * `l` - Cookie list
+    fn from_json_internal(l: &JsonValue) -> Option<Self> {
+        let mut jar = CookiesJar::new();
+        let mut it = l.members();
+        let mut tco = it.next();
+        while !tco.is_none() {
+            let co = tco.unwrap();
+            if !co.is_object() {
+                return None;
+            }
+            if !co.has_key("name") || !co.has_key("value") {
+                return None;
+            }
+            let name = &co["name"];
+            let value = &co["value"];
+            if !name.is_string() || !value.is_string() {
+                return None;
+            }
+            let r = name.as_str();
+            match r {
+                Some(_) => {}
+                None => {
+                    return None;
+                }
+            }
+            let name = r.unwrap();
+            let r = value.as_str();
+            match r {
+                Some(_) => {}
+                None => {
+                    return None;
+                }
+            }
+            let value = r.unwrap();
+            let mut c = Cookie::new(name, value);
+            if co.has_key("domain") {
+                let dm = &co["domain"];
+                if !dm.is_string() {
+                    return None;
+                }
+                let r = dm.as_str();
+                match r {
+                    Some(_) => {}
+                    None => {
+                        return None;
+                    }
+                }
+                let dm = r.unwrap();
+                c.set_domain(Some(dm));
+            }
+            if co.has_key("path") {
+                let ph = &co["path"];
+                if !ph.is_string() {
+                    return None;
+                }
+                let r = ph.as_str();
+                match r {
+                    Some(_) => {}
+                    None => {
+                        return None;
+                    }
+                }
+                let ph = r.unwrap();
+                c.set_path(Some(ph));
+            }
+            jar.add(c);
+            tco = it.next();
+        }
+        Some(jar)
+    }
+
+    /// Load from json struct
+    /// * `v` - JSON Type
+    pub fn from_json(v: &JsonValue) -> Option<Self> {
+        if v.is_array() {
+            Self::from_json_internal(v)
+        } else if v.is_object() {
+            let li = &v["cookies"];
+            if li.is_null() {
+                return None;
+            }
+            let c = Self::from_json_internal(li);
+            if c.is_none() {
+                return None;
+            }
+            let mut c = c.unwrap();
+            let ex = &v["extras"];
+            if ex.is_object() {
+                for (k, v) in ex.entries() {
+                    c.extras.insert(String::from(k), v.clone());
+                }
+            }
+            Some(c)
+        } else {
+            None
+        }
     }
 
     /// Load from netscape cookie file
@@ -315,7 +446,7 @@ impl CookiesJar {
         let mut f = f.unwrap();
         let mut s = String::from("");
         match f.read_to_string(&mut s) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 println!("{}", e);
                 return None;
@@ -329,13 +460,21 @@ impl Clone for CookiesJar {
     fn clone(&self) -> CookiesJar {
         CookiesJar {
             cookies: self.cookies.clone(),
+            extras: self.extras.clone(),
         }
     }
 }
 
 impl Debug for CookiesJar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.cookies.fmt(f)
+        if self.extras.len() == 0 {
+            self.cookies.fmt(f)
+        } else {
+            f.write_str("Cookies:")?;
+            self.cookies.fmt(f)?;
+            f.write_str("\nExtras:")?;
+            self.extras.fmt(f)
+        }
     }
 }
 
@@ -476,118 +615,16 @@ impl CookiesJson {
                 );
                 return false;
             }
-            let mut jar = CookiesJar::new();
-            let mut it = e.1.members();
-            let mut tco = it.next();
-            while !tco.is_none() {
-                let co = tco.unwrap();
-                if !co.is_object() {
-                    println!(
-                        "{}\"{}\"",
-                        gettext("Unknown cookies file: "),
-                        path_to_str(path)
-                    );
-                    return false;
-                }
-                if !co.has_key("name") || !co.has_key("value") {
-                    println!(
-                        "{}\"{}\"",
-                        gettext("Cookie must have name and value: "),
-                        path_to_str(path)
-                    );
-                    return false;
-                }
-                let name = &co["name"];
-                let value = &co["value"];
-                if !name.is_string() || !value.is_string() {
-                    println!(
-                        "{}\"{}\"",
-                        gettext("Cookie's name or value is non-string: "),
-                        path_to_str(path)
-                    );
-                    return false;
-                }
-                let r = name.as_str();
-                match r {
-                    Some(_) => {}
-                    None => {
-                        println!(
-                            "{}\"{}\"",
-                            gettext("Cookie's name or value is non-string: "),
-                            path_to_str(path)
-                        );
-                        return false;
-                    }
-                }
-                let name = r.unwrap();
-                let r = value.as_str();
-                match r {
-                    Some(_) => {}
-                    None => {
-                        println!(
-                            "{}\"{}\"",
-                            gettext("Cookie's name or value is non-string: "),
-                            path_to_str(path)
-                        );
-                        return false;
-                    }
-                }
-                let value = r.unwrap();
-                let mut c = Cookie::new(name, value);
-                if co.has_key("domain") {
-                    let dm = &co["domain"];
-                    if !dm.is_string() {
-                        println!(
-                            "{}\"{}\"",
-                            gettext("Cookie's domain is non-string: "),
-                            path_to_str(path)
-                        );
-                        return false;
-                    }
-                    let r = dm.as_str();
-                    match r {
-                        Some(_) => {}
-                        None => {
-                            println!(
-                                "{}\"{}\"",
-                                gettext("Cookie's domain is non-string: "),
-                                path_to_str(path)
-                            );
-                            return false;
-                        }
-                    }
-                    let dm = r.unwrap();
-                    c.set_domain(Some(dm));
-                }
-                if co.has_key("path") {
-                    let ph = &co["path"];
-                    if !ph.is_string() {
-                        println!(
-                            "{}\"{}\"",
-                            gettext("Cookie's path is non-string: "),
-                            path_to_str(path)
-                        );
-                        return false;
-                    }
-                    let r = ph.as_str();
-                    match r {
-                        Some(_) => {}
-                        None => {
-                            println!(
-                                "{}\"{}\"",
-                                gettext("Cookie's path is non-string: "),
-                                path_to_str(path)
-                            );
-                            return false;
-                        }
-                    }
-                    let ph = r.unwrap();
-                    c.set_path(Some(ph));
-                }
-                jar.add(c);
-                tco = it.next();
+            let jar = CookiesJar::from_json(&e.1);
+            if jar.is_none() {
+                println!(
+                    "{}\"{}\"",
+                    gettext("Unknown cookies file: "),
+                    path_to_str(path)
+                );
+                return false;
             }
-            self.add(key, jar);
+            self.add(key, jar.unwrap());
             en = ent.next();
         }
         return true;
@@ -701,6 +738,23 @@ impl Clone for CookiesJson {
             cookies: self.cookies.clone(),
         }
     }
+}
+
+#[test]
+fn test_from_and_to_json() {
+    let mut c = Cookie::new("n", "v");
+    c.set_domain(Some(".t.com"));
+    c.set_path(Some("/www"));
+    let mut jar = CookiesJar::new();
+    jar.add(c);
+    let obj = jar.to_json().unwrap();
+    let jar2 = CookiesJar::from_json(&obj).unwrap();
+    assert_eq!(jar, jar2);
+    jar.extras
+        .insert(String::from("test"), JsonValue::String(String::from("str")));
+    let obj = jar.to_json().unwrap();
+    let jar2 = CookiesJar::from_json(&obj).unwrap();
+    assert_eq!(jar, jar2);
 }
 
 #[test]
