@@ -10,6 +10,8 @@ mod metadata;
 mod opt_list;
 mod providers;
 mod settings;
+#[cfg(test)]
+mod testutils;
 mod utils;
 mod webdriver;
 
